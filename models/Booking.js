@@ -5,20 +5,17 @@ const BookingSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
     },
     providerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Provider",
-      required: true,
     },
     serviceId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Service",
-      required: true,
     },
-    scheduledDate: { type: Date, required: true },
-    timeSlot: { type: String, required: true },
+    scheduledDate: Date,
+    timeSlot: String,
     status: {
       type: String,
       enum: ["pending", "accepted", "rejected", "completed", "cancelled"],
@@ -29,4 +26,5 @@ const BookingSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-export default mongoose.model("Booking", BookingSchema);
+export default mongoose.models.Booking ||
+  mongoose.model("Booking", BookingSchema);

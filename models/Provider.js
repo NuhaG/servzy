@@ -2,9 +2,14 @@ import mongoose from "mongoose";
 
 const ProviderSchema = new mongoose.Schema(
   {
-    clerkId: { type: String, required: true, unique: true },
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    businessName: { type: String, required: true },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    businessName: {
+      type: String,
+      required: true,
+    },
     bio: String,
     categories: [String],
     location: String,
@@ -13,10 +18,17 @@ const ProviderSchema = new mongoose.Schema(
       enum: ["pending", "approved", "blocked"],
       default: "pending",
     },
-    avgRating: { type: Number, default: 0 },
-    totalReviews: { type: Number, default: 0 },
+    avgRating: {
+      type: Number,
+      default: 0,
+    },
+    totalReviews: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true },
 );
 
-export default mongoose.model("Provider", ProviderSchema);
+export default mongoose.models.Provider ||
+  mongoose.model("Provider", ProviderSchema);
