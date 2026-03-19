@@ -21,6 +21,12 @@ const BookingSchema = new mongoose.Schema(
       enum: ["pending", "accepted", "rejected", "completed", "cancelled"],
       default: "pending",
     },
+    amount: Number,
+    type: {
+      type: String,
+      enum: ["one-time", "contract"],
+      default: "one-time",
+    },
     notes: String,
   },
   { timestamps: true },
