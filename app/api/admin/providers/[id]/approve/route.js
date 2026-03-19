@@ -6,8 +6,9 @@ import { clerkClient } from "@clerk/nextjs/server";
 export async function PATCH(req, { params }) {
     try {
         await connectDB();
+        const client = await clerkClient();
 
-        const { id } = params; // provider _id
+        const { id } = await params; // provider _id
 
         // find provider
         const provider = await Provider.findById(id);
@@ -16,13 +17,18 @@ export async function PATCH(req, { params }) {
         }
 
         provider.status = "approved";
+        provider.blocked = false;
         await provider.save();
 
         // update Clerk user role to 'provider'
         if (provider.clerkId) {
-            await clerkClient.users.updateUser(provider.clerkId, {
-                publicMetadata: { role: "provider" }
-            });
+            try {
+                await client.users.updateUser(provider.clerkId, {
+                    publicMetadata: { role: "provider" }
+                });
+            } catch (clerkError) {
+                console.warn("Clerk metadata update failed:", clerkError.message);
+            }
         }
 
         return NextResponse.json({ message: "Provider approved successfully", provider }, { status: 200 });

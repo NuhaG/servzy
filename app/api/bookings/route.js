@@ -10,7 +10,14 @@ export async function POST(req) {
         await connectDB();
 
         const body = await req.json();
-        const { userId, serviceId, scheduledDate, timeSlot, notes } = body;
+        const { userId, serviceId, scheduledDate, timeSlot, notes, type = "one-time" } = body;
+
+        if (!["one-time", "contract"].includes(type)) {
+            return NextResponse.json(
+                { error: "Invalid booking type" },
+                { status: 400 }
+            );
+        }
 
         // check service exists
         const service = await Service.findById(serviceId);
@@ -48,6 +55,12 @@ export async function POST(req) {
         }
 
         // create booking
+        const amount =
+            (provider.basePrice || service.price || 0) +
+            (provider.bookingCharge || 0) +
+            (provider.consultationFee || 0) +
+            (provider.serviceFee || 0);
+
         const booking = await Booking.create({
             userId,
             providerId: provider._id,
@@ -55,7 +68,9 @@ export async function POST(req) {
             scheduledDate,
             timeSlot,
             notes,
-            status: "pending"
+            status: "pending",
+            amount,
+            type
         });
 
         return NextResponse.json(booking, { status: 201 });

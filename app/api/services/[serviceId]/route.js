@@ -7,7 +7,7 @@ export async function GET(req, { params }) {
     try {
         await connectDB();
 
-        const { serviceId } = params;
+        const { serviceId } = await params;
 
         const service = await Service.findById(serviceId)
             .populate("providerId", "businessName location avgRating");
@@ -33,13 +33,13 @@ export async function PATCH(req, { params }) {
     try {
         await connectDB();
 
-        const { serviceId } = params;
+        const { serviceId } = await params;
         const body = await req.json();
 
         const service = await Service.findByIdAndUpdate(
             serviceId,
             body,
-            { new: true }
+            { returnDocument: "after" }
         );
 
         if (!service) {
@@ -63,7 +63,7 @@ export async function DELETE(req, { params }) {
     try {
         await connectDB();
 
-        const { serviceId } = params;
+        const { serviceId } = await params;
 
         const service = await Service.findByIdAndDelete(serviceId);
 

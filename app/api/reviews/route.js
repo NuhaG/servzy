@@ -3,6 +3,21 @@ import { connectDB } from "@/lib/db";
 import Review from "@/models/Review";
 import Booking from "@/models/Booking";
 import Provider from "@/models/Provider";
+import Service from "@/models/Service";
+
+async function updateProviderRating(providerId) {
+    const providerServices = await Service.find({ providerId }).select("_id").lean();
+    const serviceIds = providerServices.map((service) => service._id);
+
+    const reviews = await Review.find({ serviceId: { $in: serviceIds } }).select("rating").lean();
+
+    const totalReviews = reviews.length;
+    const avgRating = totalReviews
+        ? reviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews
+        : 0;
+
+    await Provider.findByIdAndUpdate(providerId, { avgRating, totalReviews });
+}
 
 // POST a review
 export async function POST(req) {
@@ -21,6 +36,14 @@ export async function POST(req) {
             return NextResponse.json({ error: "Booking not completed yet" }, { status: 400 });
         }
 
+        if (booking.userId.toString() !== userId) {
+            return NextResponse.json({ error: "You can only review your own booking" }, { status: 403 });
+        }
+
+        if (booking.serviceId.toString() !== serviceId) {
+            return NextResponse.json({ error: "serviceId does not match booking" }, { status: 400 });
+        }
+
         // prevent duplicate review for same booking
         const existingReview = await Review.findOne({ bookingId });
         if (existingReview) {
@@ -35,16 +58,7 @@ export async function POST(req) {
             comment: comment || ""
         });
 
-        // update provider avgRating and totalReviews
-        const reviews = await Review.find({ serviceId });
-        const totalReviews = reviews.length;
-        const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews;
-
-        const bookingServiceProviderId = booking.providerId;
-        await Provider.findByIdAndUpdate(bookingServiceProviderId, {
-            avgRating,
-            totalReviews
-        });
+        await updateProviderRating(booking.providerId);
 
         return NextResponse.json(review, { status: 201 });
 

@@ -8,7 +8,7 @@ export async function GET(req, { params }) {
     try {
         await connectDB();
 
-        const { providerId } = params;
+        const { providerId } = await params;
 
         // fetch provider
         const provider = await Provider.findById(providerId).lean();

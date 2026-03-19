@@ -7,7 +7,7 @@ export async function GET(req, { params }) {
     try {
         await connectDB();
 
-        const { bookingId } = params;
+        const { bookingId } = await params;
 
         const booking = await Booking.findById(bookingId)
             .populate("serviceId", "title price category")

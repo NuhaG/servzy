@@ -3,15 +3,20 @@ import { connectDB } from "@/lib/db";
 import Booking from "@/models/Booking";
 import Provider from "@/models/Provider";
 
-// PATCH booking status (accept/reject)
+const STATUS_TRANSITIONS = {
+    pending: ["accepted", "rejected", "cancelled"],
+    accepted: ["completed", "cancelled"],
+};
+
+// PATCH booking status (provider flow: pending -> accepted -> completed)
 export async function PATCH(req, { params }) {
     try {
         await connectDB();
 
-        const { bookingId } = params;
+        const { bookingId } = await params;
         const { status } = await req.json();
 
-        if (!["accepted", "rejected"].includes(status)) {
+        if (!["accepted", "rejected", "completed", "cancelled"].includes(status)) {
             return NextResponse.json(
                 { error: "Invalid status value" },
                 { status: 400 }
@@ -37,10 +42,11 @@ export async function PATCH(req, { params }) {
             );
         }
 
-        // only pending bookings can be updated
-        if (booking.status !== "pending") {
+        const allowedNextStatuses = STATUS_TRANSITIONS[booking.status] || [];
+
+        if (!allowedNextStatuses.includes(status)) {
             return NextResponse.json(
-                { error: "Only pending bookings can be updated" },
+                { error: `Cannot change booking from ${booking.status} to ${status}` },
                 { status: 400 }
             );
         }
