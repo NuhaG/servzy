@@ -10,9 +10,13 @@ export async function GET(req, { params }) {
         const { serviceId } = await params;
 
         const service = await Service.findById(serviceId)
-            .populate("providerId", "businessName location avgRating");
+            .populate({
+                path: "providerId",
+                select: "businessName location avgRating status blocked",
+                match: { status: "approved", blocked: { $ne: true } },
+            });
 
-        if (!service) {
+        if (!service || !service.providerId) {
             return NextResponse.json(
                 { error: "Service not found" },
                 { status: 404 }

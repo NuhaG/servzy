@@ -98,6 +98,7 @@ export default function Page() {
 
           {/* Translucent white Clerk card */}
           <SignIn
+            forceRedirectUrl="/auth/complete"
             appearance={{
               variables: {
                 colorPrimary:         "#c94b2c",

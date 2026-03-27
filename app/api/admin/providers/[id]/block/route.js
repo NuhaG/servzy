@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import Provider from "@/models/Provider";
-import { clerkClient } from "@clerk/nextjs/server";
+import User from "@/models/User";
+import { ROLES } from "@/lib/roles";
+import { syncClerkUserRole } from "@/lib/clerk";
 
 export async function PATCH(req, { params }) {
     try {
         await connectDB();
-        const client = await clerkClient();
 
         const { id } = await params; // provider _id
 
@@ -20,12 +21,14 @@ export async function PATCH(req, { params }) {
         provider.blocked = true;
         await provider.save();
 
-        // optionally, update Clerk user role to "user" (blocked provider loses provider access)
+        await User.findOneAndUpdate(
+            { clerkId: provider.clerkId },
+            { role: ROLES.USER }
+        );
+
         if (provider.clerkId) {
             try {
-                await client.users.updateUser(provider.clerkId, {
-                    publicMetadata: { role: "user" }
-                });
+                await syncClerkUserRole(provider.clerkId, ROLES.USER);
             } catch (clerkError) {
                 console.warn("Clerk metadata update failed:", clerkError.message);
             }

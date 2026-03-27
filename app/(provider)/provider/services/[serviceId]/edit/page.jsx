@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import AppNav from "@/components/AppNav";
 
 export default function EditServicePage() {
   const { serviceId } = useParams();
@@ -82,30 +83,32 @@ export default function EditServicePage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 p-8">
-      <form onSubmit={saveService} className="mx-auto max-w-3xl space-y-3 rounded-lg bg-white p-6 shadow">
-        <h1 className="text-2xl font-bold">Edit Service</h1>
+    <main className="sv-page">
+      <AppNav />
+      <div className="sv-shell">
+      <form onSubmit={saveService} className="sv-card mx-auto max-w-3xl space-y-3 p-6">
+        <h1 className="sv-title">Edit Service</h1>
         <input
-          className="w-full rounded border p-2"
+          className="sv-input"
           placeholder="Title"
           value={form.title}
           onChange={(e) => setForm({ ...form, title: e.target.value })}
           required
         />
         <textarea
-          className="w-full rounded border p-2"
+          className="sv-input"
           placeholder="Description"
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
         />
         <input
-          className="w-full rounded border p-2"
+          className="sv-input"
           placeholder="Category"
           value={form.category}
           onChange={(e) => setForm({ ...form, category: e.target.value })}
         />
         <input
-          className="w-full rounded border p-2"
+          className="sv-input"
           type="number"
           placeholder="Price"
           value={form.price}
@@ -113,7 +116,7 @@ export default function EditServicePage() {
           required
         />
         <input
-          className="w-full rounded border p-2"
+          className="sv-input"
           placeholder="Image URLs (comma separated)"
           value={form.images}
           onChange={(e) => setForm({ ...form, images: e.target.value })}
@@ -127,7 +130,7 @@ export default function EditServicePage() {
           Active
         </label>
         <div className="flex gap-2">
-          <button className="rounded bg-slate-900 px-4 py-2 text-white">Save</button>
+          <button className="sv-btn">Save</button>
           <button
             type="button"
             onClick={deleteService}
@@ -137,8 +140,9 @@ export default function EditServicePage() {
           </button>
         </div>
         {message ? <p className="text-green-700">{message}</p> : null}
-        {error ? <p className="text-red-600">{error}</p> : null}
+        {error ? <p className="text-red-700">{error}</p> : null}
       </form>
+      </div>
     </main>
   );
 }

@@ -9,13 +9,25 @@ export async function GET(req) {
     await connectDB();
 
     const services = await Service.find({ isActive: true })
-      .populate("providerId", "businessName location avgRating")
+      .populate({
+        path: "providerId",
+        select: "businessName location avgRating status blocked",
+        match: { status: "approved", blocked: { $ne: true } },
+      })
       .sort({ createdAt: -1 });
 
-    return NextResponse.json(services, { status: 200 });
+    const visibleServices = services.filter((item) => item.providerId);
+
+    return NextResponse.json(visibleServices, { status: 200 });
   } catch (error) {
+    console.error("GET /api/services failed:", error);
     return NextResponse.json(
-      { error: "Failed to fetch services" },
+      {
+        error:
+          process.env.NODE_ENV === "development"
+            ? `Failed to fetch services: ${error.message}`
+            : "Failed to fetch services",
+      },
       { status: 500 }
     );
   }

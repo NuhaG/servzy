@@ -1,31 +1,44 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import AppNav from "@/components/AppNav";
 
 export default function ProviderBookingsPage() {
-  const [providerId, setProviderId] = useState("");
+  const [provider, setProvider] = useState(null);
   const [bookings, setBookings] = useState([]);
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [tab, setTab] = useState("requests");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  function displayStatus(status) {
-    if (status === "accepted") return "confirmed";
-    return status;
-  }
-
-  const loadBookings = useCallback(async () => {
+  const loadBookings = useCallback(async (providerId) => {
     if (!providerId) return;
-    setError("");
-    setMessage("");
     try {
       const response = await fetch(`/api/bookings?providerId=${encodeURIComponent(providerId)}`);
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Failed to fetch bookings");
-      setBookings(data);
+      setBookings(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err.message);
     }
-  }, [providerId]);
+  }, []);
+
+  useEffect(() => {
+    async function loadPage() {
+      try {
+        const meResponse = await fetch("/api/me");
+        const meData = await meResponse.json();
+        if (!meResponse.ok) throw new Error(meData.error || "Failed to load provider");
+        if (!meData.provider?._id) throw new Error("Provider profile not found for this account");
+        setProvider(meData.provider);
+        await loadBookings(meData.provider._id);
+      } catch (err) {
+        setError(err.message);
+      }
+    }
+    loadPage();
+  }, [loadBookings]);
 
   async function updateStatus(bookingId, status) {
     setError("");
@@ -38,91 +51,118 @@ export default function ProviderBookingsPage() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Failed to update status");
-      setMessage(`Booking ${bookingId} updated to ${data.status}`);
-      await loadBookings();
+      setMessage(`Booking updated to ${data.status}`);
+      await loadBookings(provider?._id);
     } catch (err) {
       setError(err.message);
     }
   }
 
-  useEffect(() => {
-    async function loadContext() {
-      try {
-        const response = await fetch("/api/demo/context");
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Failed to load demo context");
-        const demoProviderId = data.primaryProvider?._id || "";
-        setProviderId(demoProviderId);
-      } catch (err) {
-        setError(err.message);
-      }
-    }
-    loadContext();
-  }, []);
+  const filtered = useMemo(() => {
+    const q = query.toLowerCase().trim();
+    return bookings
+      .filter((item) => (statusFilter === "all" ? true : item.status === statusFilter))
+      .filter((item) => {
+        if (tab === "requests") return item.status === "pending";
+        if (tab === "upcoming") return item.status === "accepted";
+        if (tab === "history") return ["completed", "rejected", "cancelled"].includes(item.status);
+        return true;
+      })
+      .filter((item) => {
+        const customer = item.userId?.name?.toLowerCase() || "";
+        const service = item.serviceId?.title?.toLowerCase() || "";
+        return !q || customer.includes(q) || service.includes(q);
+      });
+  }, [bookings, query, statusFilter, tab]);
 
-  useEffect(() => {
-    if (providerId) {
-      loadBookings();
-    }
-  }, [providerId, loadBookings]);
+  const stats = useMemo(() => {
+    const pending = bookings.filter((item) => item.status === "pending").length;
+    const accepted = bookings.filter((item) => item.status === "accepted").length;
+    const completed = bookings.filter((item) => item.status === "completed").length;
+    const cancellations = bookings.filter((item) => item.status === "cancelled").length;
+    const revenue = bookings.filter((item) => item.status === "completed").reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const acceptRate = pending + completed ? Math.round(((accepted + completed) / bookings.length) * 100) : 0;
+    return { pending, accepted, completed, cancellations, revenue, acceptRate };
+  }, [bookings]);
 
   return (
-    <main className="min-h-screen bg-slate-100 p-8">
-      <div className="mx-auto max-w-4xl space-y-4 rounded-lg bg-white p-6 shadow">
-        <h1 className="text-2xl font-bold">Provider Bookings</h1>
-        <div className="flex gap-2">
-          <input
-            className="w-full rounded border p-2"
-            placeholder="Provider ID"
-            value={providerId}
-            onChange={(e) => setProviderId(e.target.value)}
-          />
-          <button onClick={loadBookings} className="rounded bg-slate-900 px-4 py-2 text-white">
-            Load
-          </button>
-        </div>
+    <main className="sv-page">
+      <AppNav />
+      <div className="sv-shell space-y-4">
+        <section className="sv-card p-5">
+          <h1 className="sv-title">Provider Operations</h1>
+          <p className="sv-subtitle mt-2">{provider ? `${provider.businessName} in ${provider.location || "your city"}` : "Loading provider..."}</p>
+          {message ? <p className="text-green-700 mt-2">{message}</p> : null}
+          {error ? <p className="text-red-700 mt-2">{error}</p> : null}
+        </section>
 
-        {message ? <p className="text-green-700">{message}</p> : null}
-        {error ? <p className="text-red-600">{error}</p> : null}
+        <section className="sv-card p-4" style={{ display: "grid", gap: 10, gridTemplateColumns: "1fr 1fr 220px" }}>
+          <input className="sv-input" placeholder="Search customer or service..." value={query} onChange={(e) => setQuery(e.target.value)} />
+          <input className="sv-input" value={provider?.businessName || ""} disabled />
+          <select className="sv-input" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="all">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="accepted">Accepted</option>
+            <option value="completed">Completed</option>
+            <option value="rejected">Rejected</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </section>
 
-        <div className="space-y-3">
-          {bookings.map((booking) => (
-            <div key={booking._id} className="rounded border p-3">
-              <p className="text-sm font-medium">{booking.serviceId?.title || booking.serviceId}</p>
-              <p className="text-sm">Booking: {booking._id}</p>
-              <p className="text-sm">Status: {displayStatus(booking.status)}</p>
-              <p className="text-sm">Slot: {booking.timeSlot}</p>
-              <p className="text-sm">Amount: Rs. {booking.amount || booking.serviceId?.price || 0}</p>
+        <section className="grid gap-3 sm:grid-cols-4">
+          <div className="sv-card p-4"><p className="sv-subtitle">Reliability Score</p><p className="text-3xl font-bold">{provider?.reliabilityScore || 0}%</p></div>
+          <div className="sv-card p-4"><p className="sv-subtitle">Estimated Revenue</p><p className="text-3xl font-bold">Rs {stats.revenue}</p></div>
+          <div className="sv-card p-4"><p className="sv-subtitle">Upcoming</p><p className="text-3xl font-bold">{stats.accepted}</p></div>
+          <div className="sv-card p-4"><p className="sv-subtitle">Accept Rate</p><p className="text-3xl font-bold">{stats.acceptRate}%</p></div>
+        </section>
+
+        <section className="sv-card p-4">
+          <div style={{ display: "flex", gap: 8 }}>
+            {[
+              ["requests", `Requests (${stats.pending})`],
+              ["upcoming", `Upcoming (${stats.accepted})`],
+              ["history", `History (${stats.completed + stats.cancellations})`],
+            ].map(([id, label]) => (
+              <button key={id} className="sv-btn-secondary" style={{ background: tab === id ? "rgba(201,75,44,0.12)" : "#fff" }} onClick={() => setTab(id)}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          {filtered.map((booking) => (
+            <div key={booking._id} className="sv-card p-4">
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                <div>
+                  <h3 style={{ fontWeight: 700 }}>{booking.userId?.name || "Customer"}</h3>
+                  <p className="sv-subtitle">{booking.serviceId?.title || "Service"}</p>
+                  <p className="sv-subtitle">{booking.scheduledDate ? new Date(booking.scheduledDate).toLocaleDateString() : "-"} | {booking.timeSlot}</p>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <p style={{ color: "#c94b2c", fontWeight: 800, fontSize: 24 }}>Rs {booking.amount || 0}</p>
+                  <span className="sv-pill">{booking.status}</span>
+                </div>
+              </div>
+
               {booking.status === "pending" ? (
-                <div className="mt-2 flex gap-2">
-                  <button
-                    onClick={() => updateStatus(booking._id, "accepted")}
-                    className="rounded bg-green-700 px-3 py-1 text-sm text-white"
-                  >
-                    Accept
-                  </button>
-                  <button
-                    onClick={() => updateStatus(booking._id, "rejected")}
-                    className="rounded bg-red-700 px-3 py-1 text-sm text-white"
-                  >
-                    Reject
-                  </button>
+                <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
+                  <button onClick={() => updateStatus(booking._id, "accepted")} className="sv-btn">Accept Booking</button>
+                  <button onClick={() => updateStatus(booking._id, "rejected")} className="sv-btn-secondary" style={{ color: "#a81437" }}>Reject</button>
                 </div>
               ) : null}
               {booking.status === "accepted" ? (
-                <div className="mt-2 flex gap-2">
-                  <button
-                    onClick={() => updateStatus(booking._id, "completed")}
-                    className="rounded bg-blue-700 px-3 py-1 text-sm text-white"
-                  >
-                    Mark Completed
-                  </button>
+                <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
+                  <button onClick={() => updateStatus(booking._id, "completed")} className="sv-btn">Mark Completed</button>
+                  <button onClick={() => updateStatus(booking._id, "cancelled")} className="sv-btn-secondary" style={{ color: "#a81437" }}>Cancel</button>
                 </div>
               ) : null}
             </div>
           ))}
-        </div>
+          {!filtered.length ? <div className="sv-card p-4">No bookings for this view.</div> : null}
+        </section>
       </div>
     </main>
   );
 }
+

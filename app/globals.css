@@ -1,8 +1,17 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --sv-bg: #f5ede3;
+  --sv-alt: #fdf6ee;
+  --sv-card: #ffffff;
+  --sv-border: rgba(201, 75, 44, 0.14);
+  --sv-text: #1a0a00;
+  --sv-muted: #6f4f40;
+  --sv-accent: #c94b2c;
+  --sv-accent-2: #dc143c;
 }
 
 @theme inline {
@@ -12,15 +21,92 @@
   --font-mono: "Consolas", "Courier New", monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+body {
+  background: var(--sv-bg);
+  color: var(--sv-text);
+  font-family: "DM Sans", system-ui, sans-serif;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.sv-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, var(--sv-bg), var(--sv-alt));
+  color: var(--sv-text);
+  font-family: "DM Sans", sans-serif;
+}
+
+.sv-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 28px 20px 56px;
+}
+
+.sv-title {
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: clamp(1.9rem, 3vw, 2.5rem);
+  font-weight: 700;
+  color: var(--sv-text);
+  line-height: 1.15;
+}
+
+.sv-subtitle {
+  color: var(--sv-muted);
+  font-size: 0.95rem;
+}
+
+.sv-card {
+  background: var(--sv-card);
+  border: 1px solid var(--sv-border);
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(201, 75, 44, 0.1);
+}
+
+.sv-input {
+  width: 100%;
+  border: 1px solid var(--sv-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #fff;
+  color: var(--sv-text);
+}
+
+.sv-input:focus {
+  outline: none;
+  border-color: rgba(201, 75, 44, 0.45);
+  box-shadow: 0 0 0 3px rgba(201, 75, 44, 0.12);
+}
+
+.sv-btn {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, var(--sv-accent), var(--sv-accent-2));
+  cursor: pointer;
+}
+
+.sv-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sv-btn-secondary {
+  border: 1px solid var(--sv-border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 600;
+  color: var(--sv-accent);
+  background: #fff;
+}
+
+.sv-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sv-accent);
+  background: rgba(201, 75, 44, 0.12);
+  padding: 5px 10px;
 }

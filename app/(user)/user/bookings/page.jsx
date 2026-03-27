@@ -1,86 +1,108 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import AppNav from "@/components/AppNav";
 
 export default function UserBookingsPage() {
-  const [userId, setUserId] = useState("");
+  const [user, setUser] = useState(null);
   const [bookings, setBookings] = useState([]);
-  const [message, setMessage] = useState("");
+  const [tab, setTab] = useState("active");
   const [error, setError] = useState("");
 
-  function displayStatus(status) {
-    if (status === "accepted") return "confirmed";
-    return status;
-  }
-
-  const loadBookings = useCallback(async (activeUserId = userId) => {
-    if (!activeUserId) return;
-    setError("");
-    setMessage("");
+  const loadBookings = useCallback(async (userId) => {
+    if (!userId) return;
     try {
-      const response = await fetch(`/api/bookings?userId=${encodeURIComponent(activeUserId)}`);
+      const response = await fetch(`/api/bookings?userId=${encodeURIComponent(userId)}`);
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Failed to fetch bookings");
-      setBookings(data);
+      setBookings(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err.message);
     }
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
-    async function loadContext() {
+    async function loadMe() {
       try {
-        const response = await fetch("/api/demo/context");
+        const response = await fetch("/api/me");
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Failed to load demo context");
-        const demoUserId = data.currentUser?._id || "";
-        setUserId(demoUserId);
-        await loadBookings(demoUserId);
+        if (!response.ok) throw new Error(data.error || "Failed to load user");
+        setUser(data.user);
+        await loadBookings(data.user?._id);
       } catch (err) {
         setError(err.message);
       }
     }
-
-    loadContext();
+    loadMe();
   }, [loadBookings]);
 
+  const stats = useMemo(() => {
+    const total = bookings.length;
+    const cancelled = bookings.filter((item) => item.status === "cancelled").length;
+    const active = bookings.filter((item) => ["pending", "accepted"].includes(item.status)).length;
+    const contracts = bookings.filter((item) => item.type === "contract").length;
+    const rating = total ? (5 - (cancelled / total) * 2).toFixed(1) : "5.0";
+    return { total, cancelled, active, contracts, rating };
+  }, [bookings]);
+
+  const visibleBookings = useMemo(() => {
+    if (tab === "active") return bookings.filter((item) => ["pending", "accepted"].includes(item.status));
+    if (tab === "history") return bookings.filter((item) => ["completed", "cancelled", "rejected"].includes(item.status));
+    return bookings.filter((item) => item.type === "contract");
+  }, [bookings, tab]);
+
   return (
-    <main className="min-h-screen bg-slate-100 p-8">
-      <div className="mx-auto max-w-4xl space-y-6 rounded-lg bg-white p-6 shadow">
-        <h1 className="text-2xl font-bold">User Bookings</h1>
+    <main className="sv-page">
+      <AppNav />
+      <div className="sv-shell space-y-4">
+        <section className="sv-card p-5">
+          <h1 className="sv-title">{user?.name || "User"} Booking Hub</h1>
+          <p className="sv-subtitle mt-2">Track upcoming services, history, and contracts in one place.</p>
+          {error ? <p className="text-red-700 mt-2">{error}</p> : null}
+        </section>
 
-        <div className="flex gap-2">
-          <input
-            className="w-full rounded border p-2"
-            placeholder="User ID"
-            value={userId}
-            onChange={(e) => setUserId(e.target.value)}
-          />
-          <button
-            type="button"
-            onClick={loadBookings}
-            className="rounded bg-slate-800 px-4 py-2 text-white"
-          >
-            Load
-          </button>
-        </div>
+        <section className="grid gap-3 sm:grid-cols-4">
+          <div className="sv-card p-4"><p className="sv-subtitle">Your Rating</p><p className="text-3xl font-bold">{stats.rating}</p></div>
+          <div className="sv-card p-4"><p className="sv-subtitle">Total Bookings</p><p className="text-3xl font-bold">{stats.total}</p></div>
+          <div className="sv-card p-4"><p className="sv-subtitle">Cancellations</p><p className="text-3xl font-bold">{stats.cancelled}</p></div>
+          <div className="sv-card p-4"><p className="sv-subtitle">Active Contracts</p><p className="text-3xl font-bold">{stats.contracts}</p></div>
+        </section>
 
-        {message ? <p className="text-green-700">{message}</p> : null}
-        {error ? <p className="text-red-600">{error}</p> : null}
+        <section className="sv-card p-4">
+          <div style={{ display: "flex", gap: 8 }}>
+            {[
+              ["active", "Active"],
+              ["history", "History"],
+              ["contracts", "Contracts"],
+            ].map(([id, label]) => (
+              <button key={id} className="sv-btn-secondary" style={{ background: tab === id ? "rgba(201,75,44,0.12)" : "#fff" }} onClick={() => setTab(id)}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </section>
 
-        <div className="space-y-2">
-          {bookings.map((booking) => (
-            <div key={booking._id} className="rounded border p-3">
-              <p className="text-sm">Booking: {booking._id}</p>
-              <p className="text-sm">Provider: {booking.providerId?.businessName || "-"}</p>
-              <p className="text-sm">Service: {booking.serviceId?.title || booking.serviceId}</p>
-              <p className="text-sm">Status: {displayStatus(booking.status)}</p>
-              <p className="text-sm">Amount: Rs. {booking.amount || booking.serviceId?.price || 0}</p>
-              <p className="text-sm">Slot: {booking.timeSlot}</p>
+        <section className="space-y-3">
+          {visibleBookings.map((booking) => (
+            <div key={booking._id} className="sv-card p-4">
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "start" }}>
+                <div>
+                  <h3 style={{ fontWeight: 700 }}>{booking.providerId?.businessName || "Provider"}</h3>
+                  <p className="sv-subtitle">{booking.serviceId?.title || "Service"} | {booking.status}</p>
+                  <p className="sv-subtitle">{booking.scheduledDate ? new Date(booking.scheduledDate).toLocaleDateString() : "-"} | {booking.timeSlot}</p>
+                  <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <span className="sv-pill">{booking.type}</span>
+                    <span className="sv-pill">{booking.status}</span>
+                  </div>
+                </div>
+                <p style={{ color: "#c94b2c", fontWeight: 800, fontSize: 24 }}>Rs {booking.amount || 0}</p>
+              </div>
             </div>
           ))}
-        </div>
+          {!visibleBookings.length ? <div className="sv-card p-4">No bookings for this tab.</div> : null}
+        </section>
       </div>
     </main>
   );
 }
+

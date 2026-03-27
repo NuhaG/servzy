@@ -1,7 +1,11 @@
+"use client";
 import { SignUp } from "@clerk/nextjs"
 import Link from "next/link"
+import { useState } from "react"
 
 export default function Page() {
+  const [role, setRole] = useState("user")
+
   return (
     <div style={{ minHeight: "100vh", fontFamily: "'Georgia', serif", display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
       <style>{`
@@ -95,20 +99,60 @@ export default function Page() {
             <h1 className="font-display" style={{ color: "white", fontFamily: "'Playfair Display',serif", fontSize: "clamp(1.6rem,3vw,2.2rem)", fontWeight: 700, lineHeight: 1.2 }}>
               Your home, perfectly serviced.
             </h1>
+            <div style={{ marginTop: 14, display: "inline-flex", padding: 4, borderRadius: 999, background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.25)" }}>
+              <button
+                type="button"
+                onClick={() => setRole("user")}
+                style={{
+                  border: 0,
+                  borderRadius: 999,
+                  padding: "8px 14px",
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: "pointer",
+                  color: role === "user" ? "#1a0a00" : "white",
+                  background: role === "user" ? "white" : "transparent",
+                }}
+              >
+                User
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole("provider")}
+                style={{
+                  border: 0,
+                  borderRadius: 999,
+                  padding: "8px 14px",
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: "pointer",
+                  color: role === "provider" ? "#1a0a00" : "white",
+                  background: role === "provider" ? "white" : "transparent",
+                }}
+              >
+                Provider
+              </button>
+            </div>
+            <p className="font-body" style={{ marginTop: 8, color: "rgba(255,255,255,0.78)", fontSize: 12 }}>
+              Admin accounts are assigned manually.
+            </p>
           </div>
 
           {/* Translucent white Clerk card */}
           <SignUp
+            forceRedirectUrl={`/auth/complete?role=${role}`}
             appearance={{
               variables: {
-                colorPrimary:         "#c94b2c",
-                colorText:            "#1a0a00",
-                colorTextSecondary:   "#7a5a4a",
-                colorBackground:      "rgba(255,255,255,0.96)",
+                colorPrimary: "#c94b2c",
+                colorText: "#1a0a00",
+                colorTextSecondary: "#7a5a4a",
+                colorBackground: "rgba(255,255,255,0.96)",
                 colorInputBackground: "rgba(255,255,255,0.9)",
-                colorInputText:       "#1a0a00",
-                borderRadius:         "12px",
-                fontFamily:           "'DM Sans', sans-serif",
+                colorInputText: "#1a0a00",
+                borderRadius: "12px",
+                fontFamily: "'DM Sans', sans-serif",
               },
             }}
           />

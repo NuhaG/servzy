@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useState, useEffect, useRef } from "react"
+import AppNav from "@/components/AppNav"
 
 // ── Real job-specific photos for each service ──
 const SERVICE_PHOTOS = {
@@ -31,7 +32,6 @@ const Scene = ({ type }) => (
 export default function ServzyLandingPage() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [activeCategory, setActiveCategory] = useState(null)
-  const [dark, setDark] = useState(false)
   const heroRef = useRef(null)
 
   useEffect(() => {
@@ -46,18 +46,15 @@ export default function ServzyLandingPage() {
   }, [])
 
   const t = {
-    pageBg:     dark ? "#18100a" : "#f5ede3",
-    sectionAlt: dark ? "#1f140c" : "#fdf6ee",
-    cardBg:     dark ? "#2a1a10" : "#ffffff",
-    navBg:      dark ? "rgba(24,16,10,0.92)" : "rgba(245,237,227,0.92)",
-    navBorder:  dark ? "rgba(201,75,44,0.18)" : "rgba(201,75,44,0.12)",
-    heading:    dark ? "#fde8d8" : "#1a0a00",
-    body:       dark ? "#c4957a" : "#7a5a4a",
-    muted:      dark ? "#8a5a44" : "#b08070",
-    border:     dark ? "rgba(201,75,44,0.15)" : "rgba(201,75,44,0.08)",
-    inputBg:    dark ? "#2a1a10" : "#ffffff",
-    pillBg:     dark ? "rgba(220,20,60,0.15)" : "rgba(220,20,60,0.07)",
-    footerBg:   dark ? "#0e0804" : "#120600",
+    pageBg: "#f5ede3",
+    sectionAlt: "#fdf6ee",
+    cardBg: "#ffffff",
+    heading: "#1a0a00",
+    body: "#7a5a4a",
+    muted: "#b08070",
+    border: "rgba(201,75,44,0.08)",
+    inputBg: "#ffffff",
+    footerBg: "#120600",
   }
 
   const services = [
@@ -119,37 +116,7 @@ export default function ServzyLandingPage() {
         .svc-card:hover .svc-scene { transform: scale(1.04); }
       `}</style>
 
-      {/* ── NAVBAR ── */}
-      <nav className="font-body sticky top-0 z-50 border-b" style={{ background: t.navBg, backdropFilter: "blur(20px)", borderColor: t.navBorder, transition: "background 0.3s" }}>
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl warm-grad flex items-center justify-center text-white font-bold text-lg shadow-lg" style={{ fontFamily: "'Playfair Display',serif" }}>S</div>
-            <span className="text-xl font-semibold" style={{ color: t.heading, fontFamily: "'Playfair Display',serif", transition: "color 0.3s" }}>Servzy</span>
-          </Link>
-          <div className="hidden md:flex items-center gap-8">
-            {[["Services","/services"],["Provider Dashboard","/provider/dashboard"],["User Dashboard","/user/dashboard"]].map(([label,href])=>(
-              <Link key={label} href={href} className="nav-link text-sm font-medium" style={{ color: t.body, transition: "color 0.3s" }}>{label}</Link>
-            ))}
-          </div>
-          <div className="flex items-center gap-4">
-            <button onClick={()=>setDark(d=>!d)} aria-label="Toggle dark mode" className="tog-track" style={{ background: dark ? "#c94b2c" : "rgba(201,75,44,0.15)" }}>
-              <div className="tog-thumb" style={{ left: dark?"23px":"3px", background: dark?"#fff":"#c94b2c" }} />
-              <span className="tog-icon" style={{ left:dark?"5px":"auto", right:dark?"auto":"5px" }}>{dark?"🌙":"☀️"}</span>
-            </button>
-            {/* Admin icon — only visible to admins (role check done on the admin page itself) */}
-            <Link href="/admin/dashboard" aria-label="Admin panel" title="Admin Panel"
-              className="w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:-translate-y-0.5 hover:shadow-md"
-              style={{ background:"rgba(201,75,44,0.1)", border:"1px solid rgba(201,75,44,0.2)" }}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#c94b2c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                <path d="M9 12l2 2 4-4"/>
-              </svg>
-            </Link>
-            <Link href="/sign-in" className="font-body text-sm font-medium px-4 py-2 rounded-lg" style={{ color:"#c94b2c" }}>Sign In</Link>
-            <Link href="/sign-up" className="font-body text-sm font-semibold px-5 py-2.5 rounded-xl text-white transition-all hover:-translate-y-0.5" style={{ background:"linear-gradient(135deg,#c94b2c,#dc143c)", boxShadow:"0 4px 15px rgba(201,75,44,0.35)" }}>Get Started</Link>
-          </div>
-        </div>
-      </nav>
+      <AppNav />
 
       {/* ── HERO ── */}
       <section ref={heroRef} className="relative min-h-screen flex items-center px-6 py-20 overflow-hidden noise" style={{ background: t.pageBg }}>
@@ -477,3 +444,4 @@ export default function ServzyLandingPage() {
     </div>
   )
 }
+

@@ -1,193 +1,243 @@
-"use client"
+"use client";
 
-import Image from "next/image"
-import Link from "next/link"
-import { useEffect, useState } from "react"
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import AppNav from "@/components/AppNav";
+
+function formatPrice(price, unit) {
+  const unitMap = { per_hour: "/hour", per_job: "/job", per_day: "/day" };
+  return `INR ${Number(price || 0).toLocaleString("en-IN")} ${unitMap[unit] || ""}`.trim();
+}
 
 export default function PublicServicesPage() {
-  const [providers, setProviders] = useState([])
-  const [loading, setLoading]     = useState(true)
-  const [error, setError]         = useState("")
-  const [search, setSearch]       = useState("")
-  const [hovered, setHovered]     = useState(null)
+  const [services, setServices] = useState([]);
+  const [search, setSearch] = useState("");
+  const [view, setView] = useState("list");
+  const [showFilters, setShowFilters] = useState(true);
+  const [category, setCategory] = useState("all");
+  const [maxPrice, setMaxPrice] = useState(3000);
+  const [minRating, setMinRating] = useState(0);
+  const [reliability, setReliability] = useState(0);
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [sortBy, setSortBy] = useState("nearest");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     async function loadServices() {
       try {
-        const response = await fetch("/api/services")
-        const data = await response.json()
-        if (!response.ok) throw new Error(data.error || "Failed to load services")
-
-        const map = new Map()
-        for (const service of data) {
-          const provider = service.providerId
-          if (!provider?._id) continue
-          const existing = map.get(provider._id)
-          if (existing) {
-            existing.services.push(service.title)
-            continue
-          }
-          map.set(provider._id, {
-            id:       provider._id,
-            name:     provider.businessName,
-            rating:   provider.avgRating || 0,
-            location: provider.location || "India",
-            photo:    service.images?.[0] || "https://images.unsplash.com/photo-1484101403633-562f891dc89a?w=800&h=500&fit=crop",
-            services: [service.title],
-          })
-        }
-        setProviders(Array.from(map.values()))
+        const response = await fetch("/api/services");
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Failed to load services");
+        setServices(Array.isArray(data) ? data : []);
       } catch (err) {
-        setError(err.message)
+        setError(err.message);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     }
-    loadServices()
-  }, [])
+    loadServices();
+  }, []);
 
-  const filtered = providers.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.services.some(s => s.toLowerCase().includes(search.toLowerCase())) ||
-    p.location.toLowerCase().includes(search.toLowerCase())
-  )
+  const categories = useMemo(
+    () => Array.from(new Set(services.map((item) => item.category).filter(Boolean))).sort(),
+    [services]
+  );
 
-  const stars = (rating) => Array.from({ length: 5 }, (_, i) => (
-    <span key={i} style={{ color: i < Math.round(rating) ? "#dc143c" : "#ddd", fontSize: 14 }}>★</span>
-  ))
+  const quickTags = useMemo(() => {
+    return Array.from(new Set(services.map((item) => item.title).filter(Boolean))).slice(0, 8);
+  }, [services]);
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    const output = services.filter((item) => {
+      const provider = item.providerId || {};
+      const rating = Number(provider.avgRating || 0);
+      const rel = Number(provider.reliabilityScore || 0);
+      const matchesSearch =
+        !q ||
+        item.title?.toLowerCase().includes(q) ||
+        item.category?.toLowerCase().includes(q) ||
+        provider.businessName?.toLowerCase().includes(q) ||
+        provider.location?.toLowerCase().includes(q);
+      const matchesCategory = category === "all" || item.category === category;
+      const matchesPrice = Number(item.price || 0) <= maxPrice;
+      const matchesRating = rating >= minRating;
+      const matchesReliability = rel >= reliability;
+      const matchesVerified = !verifiedOnly || provider.status === "approved";
+      return matchesSearch && matchesCategory && matchesPrice && matchesRating && matchesReliability && matchesVerified;
+    });
+
+    output.sort((a, b) => {
+      if (sortBy === "price_low") return Number(a.price || 0) - Number(b.price || 0);
+      if (sortBy === "price_high") return Number(b.price || 0) - Number(a.price || 0);
+      if (sortBy === "rating") return Number(b.providerId?.avgRating || 0) - Number(a.providerId?.avgRating || 0);
+      return Number(b.providerId?.reliabilityScore || 0) - Number(a.providerId?.reliabilityScore || 0);
+    });
+
+    return output;
+  }, [services, search, category, maxPrice, minRating, reliability, verifiedOnly, sortBy]);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f5ede3", fontFamily: "'Georgia',serif" }}>
+    <main className="sv-page">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
-        * { box-sizing: border-box; }
-        .font-display { font-family: 'Playfair Display', Georgia, serif; }
-        .font-body    { font-family: 'DM Sans', sans-serif; }
-        .warm-grad    { background: linear-gradient(135deg, #c94b2c, #dc143c); }
-        .pcard { transition: transform 0.35s cubic-bezier(0.23,1,0.32,1), box-shadow 0.35s ease; border-radius: 20px; overflow: hidden; background: white; border: 1px solid rgba(201,75,44,0.08); text-decoration: none; display: block; }
-        .pcard:hover { transform: translateY(-8px); box-shadow: 0 24px 48px rgba(201,75,44,0.18), 0 8px 16px rgba(0,0,0,0.06); }
-        .pcard:hover .card-img { transform: scale(1.06); }
-        .card-img { transition: transform 0.5s cubic-bezier(0.23,1,0.32,1); }
-        .search-input:focus { outline: none; border-color: rgba(201,75,44,0.4) !important; box-shadow: 0 0 0 3px rgba(201,75,44,0.1); }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .spinner { animation: spin 0.8s linear infinite; }
-        @keyframes fadeIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-        .fade-in { animation: fadeIn 0.5s ease both; }
+        .svc-layout { display:grid; grid-template-columns: 280px 1fr; gap:16px; }
+        @media (max-width: 980px){ .svc-layout { grid-template-columns: 1fr; } }
+        .svc-line { height: 6px; border-radius:999px; background: rgba(201,75,44,.16); overflow:hidden; }
+        .svc-fill { height:100%; background: linear-gradient(90deg,#c94b2c,#dc143c); }
       `}</style>
 
-      {/* NAVBAR */}
-      <nav className="font-body" style={{ background: "rgba(245,237,227,0.95)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(201,75,44,0.12)", position: "sticky", top: 0, zIndex: 50, padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-          <div className="warm-grad" style={{ width: 36, height: 36, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "bold", fontSize: 16, fontFamily: "'Playfair Display',serif" }}>S</div>
-          <span style={{ color: "#1a0a00", fontFamily: "'Playfair Display',serif", fontSize: 18, fontWeight: 600 }}>Servzy</span>
-        </Link>
-        <Link href="/" className="font-body" style={{ color: "#c94b2c", fontSize: 13, fontWeight: 500, textDecoration: "none" }}>← Back</Link>
-      </nav>
+      <AppNav />
 
-      {/* PAGE HEADER */}
-      <div style={{ textAlign: "center", padding: "52px 24px 36px" }}>
-        <p className="font-body" style={{ fontSize: 11, fontWeight: 600, color: "#c94b2c", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 12 }}>Find your professional</p>
-        <h1 className="font-display" style={{ fontSize: "clamp(2rem,4vw,3.2rem)", color: "#1a0a00", fontFamily: "'Playfair Display',serif", fontWeight: 700, marginBottom: 14 }}>Browse Services</h1>
-        <p className="font-body" style={{ color: "#7a5a4a", fontSize: 15, maxWidth: 460, margin: "0 auto 32px" }}>
-          Verified professionals ready to help — search by service, provider name, or location.
-        </p>
-        {/* Search */}
-        <div style={{ maxWidth: 500, margin: "0 auto", position: "relative" }}>
-          <svg style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", color: "#c94b2c", width: 18, height: 18 }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-          </svg>
-          <input type="text" placeholder="Search services or providers..." value={search} onChange={e => setSearch(e.target.value)} className="search-input font-body"
-            style={{ width: "100%", padding: "14px 16px 14px 46px", borderRadius: 14, border: "1px solid rgba(201,75,44,0.18)", background: "white", fontSize: 14, color: "#1a0a00", transition: "border-color 0.2s, box-shadow 0.2s" }} />
-        </div>
-      </div>
+      <section className="sv-shell space-y-4">
+        <div className="sv-card p-5">
+          <h1 className="sv-title">Book Local Services</h1>
+          <p className="sv-subtitle mt-2">Compare trusted providers, pricing, and response quality in one place.</p>
 
-      {/* CONTENT */}
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px 80px" }}>
-
-        {loading && (
-          <div style={{ textAlign: "center", padding: "80px 0" }}>
-            <div className="spinner" style={{ width: 40, height: 40, border: "3px solid rgba(201,75,44,0.15)", borderTop: "3px solid #c94b2c", borderRadius: "50%", margin: "0 auto 16px" }} />
-            <p className="font-body" style={{ color: "#7a5a4a", fontSize: 14 }}>Finding professionals near you...</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <input
+              className="sv-input"
+              style={{ maxWidth: 360 }}
+              placeholder="Search provider or service"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <select className="sv-input" style={{ maxWidth: 180 }} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+              <option value="nearest">Nearest first</option>
+              <option value="rating">Highest rating</option>
+              <option value="price_low">Price low to high</option>
+              <option value="price_high">Price high to low</option>
+            </select>
+            <button className="sv-btn-secondary" onClick={() => setShowFilters((v) => !v)}>
+              {showFilters ? "Hide filters" : "Show filters"}
+            </button>
+            <div style={{ marginLeft: "auto", display: "inline-flex", border: "1px solid var(--sv-border)", borderRadius: 10, overflow: "hidden" }}>
+              <button className="sv-btn-secondary" style={{ border: 0, borderRadius: 0, background: view === "list" ? "rgba(201,75,44,0.12)" : "#fff" }} onClick={() => setView("list")}>List</button>
+              <button className="sv-btn-secondary" style={{ border: 0, borderRadius: 0, background: view === "map" ? "rgba(201,75,44,0.12)" : "#fff" }} onClick={() => setView("map")}>Map</button>
+            </div>
           </div>
-        )}
 
-        {error && !loading && (
-          <div style={{ textAlign: "center", padding: "60px 0" }}>
-            <p className="font-body" style={{ color: "#c94b2c", fontSize: 15, fontWeight: 500, marginBottom: 16 }}>{error}</p>
-            <button onClick={() => window.location.reload()} className="font-body" style={{ padding: "10px 24px", background: "linear-gradient(135deg,#c94b2c,#dc143c)", color: "white", border: "none", borderRadius: 10, fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Try again</button>
-          </div>
-        )}
-
-        {!loading && !error && (
-          <p className="font-body" style={{ color: "#b08070", fontSize: 13, marginBottom: 20 }}>
-            {filtered.length} provider{filtered.length !== 1 ? "s" : ""} found{search && ` for "${search}"`}
-          </p>
-        )}
-
-        {!loading && !error && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 22 }}>
-            {filtered.map((provider, i) => (
-              <Link key={provider.id} href={`/providers/${provider.id}`} className="pcard fade-in" style={{ animationDelay: `${i * 0.06}s` }}
-                onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)}>
-                {/* Photo */}
-                <div style={{ position: "relative", aspectRatio: "16/10", overflow: "hidden" }}>
-                  <Image src={provider.photo} alt={provider.name} width={800} height={500}
-                    className="card-img"
-                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top,rgba(26,10,0,0.3) 0%,transparent 55%)" }} />
-                  {provider.rating > 0 && (
-                    <div className="font-body" style={{ position: "absolute", top: 12, right: 12, background: "rgba(255,255,255,0.95)", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 700, color: "#1a0a00", display: "flex", alignItems: "center", gap: 4, backdropFilter: "blur(8px)" }}>
-                      <span style={{ color: "#dc143c" }}>★</span> {provider.rating.toFixed(1)}
-                    </div>
-                  )}
-                </div>
-
-                {/* Info */}
-                <div style={{ padding: "16px 18px 18px" }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 6 }}>
-                    <h2 className="font-display" style={{ color: "#1a0a00", fontSize: 17, fontWeight: 700, fontFamily: "'Playfair Display',serif", lineHeight: 1.3 }}>{provider.name}</h2>
-                    <span style={{ color: "#c94b2c", fontSize: 18, opacity: hovered === i ? 1 : 0, transition: "opacity 0.2s", flexShrink: 0, marginLeft: 8 }}>→</span>
-                  </div>
-
-                  <div className="font-body" style={{ display: "flex", alignItems: "center", gap: 5, color: "#7a5a4a", fontSize: 12, marginBottom: 10 }}>
-                    <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-                    {provider.location}
-                  </div>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
-                    <div>{stars(provider.rating)}</div>
-                    <span className="font-body" style={{ fontSize: 11, color: "#b08070" }}>
-                      {provider.rating > 0 ? `${provider.rating.toFixed(1)} / 5` : "No ratings yet"}
-                    </span>
-                  </div>
-
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
-                    {provider.services.slice(0, 3).map((svc, j) => (
-                      <span key={j} className="font-body" style={{ fontSize: 11, padding: "3px 10px", borderRadius: 20, background: "rgba(220,20,60,0.07)", color: "#c94b2c", border: "1px solid rgba(220,20,60,0.16)", fontWeight: 500 }}>{svc}</span>
-                    ))}
-                    {provider.services.length > 3 && (
-                      <span className="font-body" style={{ fontSize: 11, padding: "3px 10px", borderRadius: 20, background: "rgba(201,75,44,0.06)", color: "#b08070" }}>+{provider.services.length - 3} more</span>
-                    )}
-                  </div>
-
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "9px 18px", background: "linear-gradient(135deg,#c94b2c,#dc143c)", color: "white", borderRadius: 10, fontSize: 13, fontWeight: 600, fontFamily: "'DM Sans',sans-serif" }}>
-                    View Provider
-                  </div>
-                </div>
-              </Link>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {quickTags.map((tag) => (
+              <button key={tag} className="sv-pill" onClick={() => setSearch(tag)}>{tag}</button>
             ))}
           </div>
-        )}
+        </div>
 
-        {!loading && !error && filtered.length === 0 && (
-          <div style={{ textAlign: "center", padding: "80px 0" }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
-            <p className="font-display" style={{ color: "#1a0a00", fontSize: 20, fontFamily: "'Playfair Display',serif", fontWeight: 600, marginBottom: 8 }}>No results found</p>
-            <p className="font-body" style={{ color: "#7a5a4a", fontSize: 14, marginBottom: 20 }}>Try searching for something else</p>
-            <button onClick={() => setSearch("")} className="font-body" style={{ padding: "10px 24px", background: "linear-gradient(135deg,#c94b2c,#dc143c)", color: "white", border: "none", borderRadius: 10, fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Clear search</button>
-          </div>
-        )}
-      </div>
-    </div>
-  )
+        <div className="svc-layout">
+          {showFilters ? (
+            <aside className="sv-card p-4 space-y-4" style={{ alignSelf: "start" }}>
+              <h2 style={{ fontWeight: 700 }}>Filters</h2>
+              <div>
+                <p className="sv-subtitle">Service Category</p>
+                <select className="sv-input mt-1" value={category} onChange={(e) => setCategory(e.target.value)}>
+                  <option value="all">All Categories</option>
+                  {categories.map((item) => <option key={item} value={item}>{item}</option>)}
+                </select>
+              </div>
+              <div>
+                <p className="sv-subtitle">Price Range: 0 - {maxPrice}</p>
+                <input type="range" min="0" max="5000" step="100" value={maxPrice} onChange={(e) => setMaxPrice(Number(e.target.value))} style={{ width: "100%" }} />
+              </div>
+              <div>
+                <p className="sv-subtitle">Minimum Rating: {minRating.toFixed(1)}+</p>
+                <input type="range" min="0" max="5" step="0.5" value={minRating} onChange={(e) => setMinRating(Number(e.target.value))} style={{ width: "100%" }} />
+              </div>
+              <div>
+                <p className="sv-subtitle">Minimum Reliability: {reliability}%</p>
+                <input type="range" min="0" max="100" step="5" value={reliability} onChange={(e) => setReliability(Number(e.target.value))} style={{ width: "100%" }} />
+              </div>
+              <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 14 }}>
+                <input type="checkbox" checked={verifiedOnly} onChange={(e) => setVerifiedOnly(e.target.checked)} />
+                Verified providers only
+              </label>
+              <button
+                className="sv-btn-secondary"
+                onClick={() => {
+                  setCategory("all");
+                  setMaxPrice(3000);
+                  setMinRating(0);
+                  setReliability(0);
+                  setVerifiedOnly(false);
+                  setSortBy("nearest");
+                }}
+              >
+                Clear filters
+              </button>
+            </aside>
+          ) : null}
+
+          <section className="space-y-3">
+            {!error ? (
+              <div className="sv-card p-3" style={{ fontSize: 13 }}>
+                {filtered.length} providers found
+              </div>
+            ) : null}
+
+            {loading ? <div className="sv-card p-4">Loading services...</div> : null}
+            {error ? (
+              <div className="sv-card p-4 text-red-700">
+                {error}
+                <div style={{ marginTop: 8 }}>
+                  <button className="sv-btn-secondary" onClick={() => window.location.reload()}>
+                    Retry
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            {!loading && !error && view === "map" ? (
+              <div className="sv-card p-3">
+                <p className="sv-subtitle mb-2">Provider map view</p>
+                <iframe
+                  title="Service Map"
+                  src="https://www.openstreetmap.org/export/embed.html?bbox=72.78%2C18.93%2C72.95%2C19.08&layer=mapnik"
+                  style={{ width: "100%", height: 520, border: 0, borderRadius: 12 }}
+                />
+              </div>
+            ) : null}
+
+            {!loading && !error && view === "list" ? (
+              <div className="space-y-3">
+                {filtered.map((service) => {
+                  const provider = service.providerId || {};
+                  const img = service.images?.[0] || "https://picsum.photos/seed/provider/320/220";
+                  const reliabilityScore = Number(provider.reliabilityScore || 0);
+                  return (
+                    <div key={service._id} className="sv-card p-3">
+                      <div style={{ display: "grid", gridTemplateColumns: "110px 1fr auto", gap: 12, alignItems: "center" }}>
+                        <img src={img} alt={service.title} style={{ width: 110, height: 84, objectFit: "cover", borderRadius: 12 }} />
+                        <div>
+                          <h3 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, fontSize: 20 }}>{provider.businessName || "Provider"}</h3>
+                          <p className="sv-subtitle">{service.title} | {provider.location || "Unknown location"}</p>
+                          <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
+                            <span className="sv-pill">Rating {Number(provider.avgRating || 0).toFixed(1)}</span>
+                            <span className="sv-pill">Reliability {reliabilityScore}%</span>
+                            <span className="sv-pill">{service.category || "General"}</span>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <p style={{ color: "#c94b2c", fontWeight: 800, fontSize: 22 }}>Rs {Number(service.price || 0)}</p>
+                          <p className="sv-subtitle">starting price</p>
+                        </div>
+                      </div>
+                      <div style={{ marginTop: 12 }} className="svc-line">
+                        <div className="svc-fill" style={{ width: `${Math.min(reliabilityScore, 100)}%` }} />
+                      </div>
+                      <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <Link href={`/providers/${provider._id}`} className="sv-btn" style={{ textDecoration: "none" }}>View profile</Link>
+                        <button className="sv-btn-secondary">Show on map</button>
+                        <button className="sv-btn-secondary">More details</button>
+                      </div>
+                    </div>
+                  );
+                })}
+                {!filtered.length ? <div className="sv-card p-4">No services match your filters.</div> : null}
+              </div>
+            ) : null}
+          </section>
+        </div>
+      </section>
+    </main>
+  );
 }
