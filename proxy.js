@@ -1,6 +1,22 @@
-import { clerkMiddleware } from "@clerk/nextjs/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
-export default clerkMiddleware();
+const isDashboardRoute = createRouteMatcher([
+  "/user/dashboard(.*)",
+  "/provider/dashboard(.*)",
+  "/admin/dashboard(.*)",
+]);
+
+export default clerkMiddleware(async (auth, req) => {
+  if (!isDashboardRoute(req)) return NextResponse.next();
+
+  const { userId, redirectToSignIn } = await auth();
+  if (!userId) {
+    return redirectToSignIn({ returnBackUrl: req.url });
+  }
+
+  return NextResponse.next();
+});
 
 export const config = {
   matcher: [

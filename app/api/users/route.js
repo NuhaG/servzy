@@ -1,10 +1,20 @@
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
 import User from "@/models/User";
+import { connectDB } from "@/lib/db";
+import { getSessionUser, hasRole } from "@/lib/rbac";
+import { ROLES } from "@/lib/roles";
 
 // GET all users (admin only)
 export async function GET(req) {
     try {
+        const { userId, user } = await getSessionUser({ createIfMissing: true });
+        if (!userId || !user) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        if (!hasRole(user, [ROLES.ADMIN])) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
         await connectDB();
 
         const { searchParams } = new URL(req.url);

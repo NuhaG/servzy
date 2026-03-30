@@ -1,16 +1,30 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AppNav from "@/components/AppNav";
 
 export default function AdminDashboardPage() {
+  const router = useRouter();
   const [stats, setStats] = useState({ users: 0, providers: 0, bookings: 0 });
   const [error, setError] = useState("");
 
   useEffect(() => {
     async function loadDashboard() {
       try {
+        const meResponse = await fetch("/api/me");
+        const meData = await meResponse.json();
+        if (!meResponse.ok) throw new Error(meData.error || "Failed to load account");
+        if (meData.user?.role === "provider") {
+          router.replace("/provider/dashboard");
+          return;
+        }
+        if (meData.user?.role === "user") {
+          router.replace("/user/dashboard");
+          return;
+        }
+
         const [usersResponse, providersResponse, bookingsResponse] = await Promise.all([
           fetch("/api/users?page=1&limit=1"),
           fetch("/api/providers?includeAll=1"),
@@ -36,7 +50,7 @@ export default function AdminDashboardPage() {
     }
 
     loadDashboard();
-  }, []);
+  }, [router]);
 
   return (
     <main className="sv-page">

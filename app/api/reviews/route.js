@@ -4,6 +4,8 @@ import Review from "@/models/Review";
 import Booking from "@/models/Booking";
 import Provider from "@/models/Provider";
 import Service from "@/models/Service";
+import { getSessionUser, hasRole } from "@/lib/rbac";
+import { ROLES } from "@/lib/roles";
 
 async function updateProviderRating(providerId) {
     const providerServices = await Service.find({ providerId }).select("_id").lean();
@@ -22,6 +24,14 @@ async function updateProviderRating(providerId) {
 // POST a review
 export async function POST(req) {
     try {
+        const { userId: sessionUserId, user } = await getSessionUser({ createIfMissing: true });
+        if (!sessionUserId || !user) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        if (!hasRole(user, [ROLES.USER, ROLES.ADMIN])) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
         await connectDB();
 
         const { userId, serviceId, bookingId, rating, comment } = await req.json();
@@ -36,7 +46,7 @@ export async function POST(req) {
             return NextResponse.json({ error: "Booking not completed yet" }, { status: 400 });
         }
 
-        if (booking.userId.toString() !== userId) {
+        if (!hasRole(user, [ROLES.ADMIN]) && booking.userId.toString() !== String(user._id)) {
             return NextResponse.json({ error: "You can only review your own booking" }, { status: 403 });
         }
 
@@ -51,7 +61,7 @@ export async function POST(req) {
         }
 
         const review = await Review.create({
-            userId,
+            userId: hasRole(user, [ROLES.ADMIN]) && userId ? userId : user._id,
             serviceId,
             bookingId,
             rating,

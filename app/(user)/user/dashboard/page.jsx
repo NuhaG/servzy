@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AppNav from "@/components/AppNav";
 
 export default function UserDashboardPage() {
+  const router = useRouter();
   const [user, setUser] = useState(null);
   const [stats, setStats] = useState({ total: 0, completed: 0, pending: 0 });
   const [error, setError] = useState("");
@@ -15,6 +17,14 @@ export default function UserDashboardPage() {
         const meResponse = await fetch("/api/me");
         const meData = await meResponse.json();
         if (!meResponse.ok) throw new Error(meData.error || "Failed to load account");
+        if (meData.user?.role === "provider") {
+          router.replace("/provider/dashboard");
+          return;
+        }
+        if (meData.user?.role === "admin") {
+          router.replace("/admin/dashboard");
+          return;
+        }
         setUser(meData.user);
 
         const bookingsResponse = await fetch(`/api/bookings?userId=${encodeURIComponent(meData.user._id)}`);
@@ -31,7 +41,7 @@ export default function UserDashboardPage() {
     }
 
     loadDashboard();
-  }, []);
+  }, [router]);
 
   return (
     <main className="sv-page">

@@ -2,10 +2,13 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import Provider from "@/models/Provider";
 import Service from "@/models/Service";
+import { getSessionUser, hasRole } from "@/lib/rbac";
+import { ROLES } from "@/lib/roles";
 
 // GET provider profile
 export async function GET(req, { params }) {
     try {
+        const { user } = await getSessionUser({ createIfMissing: false });
         await connectDB();
 
         const { providerId } = await params;
@@ -14,6 +17,17 @@ export async function GET(req, { params }) {
         const provider = await Provider.findById(providerId).lean();
 
         if (!provider) {
+            return NextResponse.json(
+                { error: "Provider not found" },
+                { status: 404 }
+            );
+        }
+
+        const isPublicVisible = provider.blocked !== true && provider.status !== "blocked";
+        const isAdmin = hasRole(user, [ROLES.ADMIN]);
+        const isOwner = Boolean(user?.clerkId && provider.clerkId === user.clerkId);
+
+        if (!isPublicVisible && !isAdmin && !isOwner) {
             return NextResponse.json(
                 { error: "Provider not found" },
                 { status: 404 }

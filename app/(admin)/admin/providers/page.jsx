@@ -119,7 +119,8 @@ export default function AdminProvidersPage() {
               </div>
               <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button className="sv-btn-secondary">View Profile</button>
-                <button className="sv-btn-secondary">Flag Account</button>
+                <button className="sv-btn-secondary" onClick={() => updateProviderStatus(provider._id, "flag")}>Flag Account</button>
+                <button className="sv-btn-secondary" onClick={() => updateProviderStatus(provider._id, "warn")}>Send Warning</button>
                 <button className="sv-btn" onClick={() => updateProviderStatus(provider._id, "approve")}>Approve</button>
                 <button className="sv-btn-secondary" style={{ color: "#a81437" }} onClick={() => updateProviderStatus(provider._id, "block")}>Block Provider</button>
               </div>
@@ -131,4 +132,3 @@ export default function AdminProvidersPage() {
     </main>
   );
 }
-

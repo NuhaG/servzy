@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import Service from "@/models/Service";
 import Provider from "@/models/Provider";
+import { getSessionUser, hasRole } from "@/lib/rbac";
+import { ROLES } from "@/lib/roles";
 
 // GET all services
 export async function GET(req) {
@@ -12,7 +14,7 @@ export async function GET(req) {
       .populate({
         path: "providerId",
         select: "businessName location avgRating status blocked",
-        match: { status: "approved", blocked: { $ne: true } },
+        match: { blocked: { $ne: true } },
       })
       .sort({ createdAt: -1 });
 
@@ -36,6 +38,14 @@ export async function GET(req) {
 // CREATE service (provider only)
 export async function POST(req) {
   try {
+    const { userId, user } = await getSessionUser({ createIfMissing: true });
+    if (!userId || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (!hasRole(user, [ROLES.PROVIDER, ROLES.ADMIN])) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     await connectDB();
 
     const body = await req.json();
@@ -60,10 +70,17 @@ export async function POST(req) {
       );
     }
 
-    // check provider approved
-    if (provider.status !== "approved") {
+    // blocked providers cannot create services
+    if (provider.blocked === true || provider.status === "blocked") {
       return NextResponse.json(
-        { error: "Provider not approved" },
+        { error: "Provider is blocked" },
+        { status: 403 }
+      );
+    }
+
+    if (!hasRole(user, [ROLES.ADMIN]) && provider.clerkId !== user.clerkId) {
+      return NextResponse.json(
+        { error: "Forbidden" },
         { status: 403 }
       );
     }

@@ -6,44 +6,33 @@ import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import AppNav from "@/components/AppNav";
 
-function statusLabel(status) {
-  if (status === "accepted") return "confirmed";
-  return status;
-}
-
 export default function ProviderDetailsPage() {
   const { providerId } = useParams();
   const [provider, setProvider] = useState(null);
   const [currentUserId, setCurrentUserId] = useState("");
-  const [form, setForm] = useState({
-    serviceId: "",
-    scheduledDate: "",
-    timeSlot: "",
-    type: "one-time",
-  });
-  const [createdBooking, setCreatedBooking] = useState(null);
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
 
   useEffect(() => {
     async function loadPageData() {
       try {
         setError("");
-        const [providerResponse, contextResponse] = await Promise.all([
-          fetch(`/api/providers/${providerId}`),
-          fetch("/api/me"),
-        ]);
-
+        const providerResponse = await fetch(`/api/providers/${providerId}`);
         const providerData = await providerResponse.json();
-        const contextData = await contextResponse.json();
-
         if (!providerResponse.ok) throw new Error(providerData.error || "Failed to load provider");
-        if (!contextResponse.ok) throw new Error(contextData.error || "Please sign in to book a provider");
 
         setProvider(providerData);
-        setCurrentUserId(contextData.user?._id || "");
-        if (providerData.services?.[0]?._id) {
-          setForm((prev) => ({ ...prev, serviceId: providerData.services[0]._id }));
+
+        // Optional account context: provider profile stays public even if user is signed out.
+        try {
+          const contextResponse = await fetch("/api/me");
+          if (contextResponse.ok) {
+            const contextData = await contextResponse.json();
+            setCurrentUserId(contextData.user?._id || "");
+          } else {
+            setCurrentUserId("");
+          }
+        } catch (_) {
+          setCurrentUserId("");
         }
       } catch (err) {
         setError(err.message);
@@ -53,39 +42,10 @@ export default function ProviderDetailsPage() {
     if (providerId) loadPageData();
   }, [providerId]);
 
-  const serviceOptions = useMemo(() => provider?.services || [], [provider]);
   const selectedService = useMemo(
-    () => serviceOptions.find((item) => item._id === form.serviceId) || serviceOptions[0],
-    [serviceOptions, form.serviceId]
+    () => (provider?.services || [])[0],
+    [provider]
   );
-
-  async function createBooking(event) {
-    event.preventDefault();
-    setError("");
-    setMessage("");
-    setCreatedBooking(null);
-
-    try {
-      const response = await fetch("/api/bookings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: currentUserId,
-          serviceId: form.serviceId,
-          scheduledDate: form.scheduledDate,
-          timeSlot: form.timeSlot,
-          type: form.type,
-          notes: "Created from provider details page",
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to create booking");
-      setCreatedBooking(data);
-      setMessage("Booking created. It is now visible on provider and user pages.");
-    } catch (err) {
-      setError(err.message);
-    }
-  }
 
   return (
     <main className="sv-page">
@@ -126,49 +86,19 @@ export default function ProviderDetailsPage() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-[1.5fr_1fr]">
-            <form onSubmit={createBooking} className="grid gap-3 sv-card p-4 md:grid-cols-2">
-              <h2 className="md:col-span-2 text-lg font-semibold">Book this provider</h2>
+            <section className="sv-card p-4 space-y-3">
+              <h2 className="text-lg font-semibold">Ready To Book?</h2>
+              <p className="sv-subtitle">Continue to booking to choose service, date, and time.</p>
               {!currentUserId ? (
-                <p className="md:col-span-2 text-sm text-amber-700">Sign in to book this provider.</p>
-              ) : null}
-              <select
-                className="sv-input"
-                value={form.serviceId}
-                onChange={(event) => setForm({ ...form, serviceId: event.target.value })}
-                required
-              >
-                {serviceOptions.map((service) => (
-                  <option key={service._id} value={service._id}>
-                    {service.title}
-                  </option>
-                ))}
-              </select>
-              <select
-                className="sv-input"
-                value={form.type}
-                onChange={(event) => setForm({ ...form, type: event.target.value })}
-              >
-                <option value="one-time">one-time</option>
-                <option value="contract">contract</option>
-              </select>
-              <input
-                className="sv-input"
-                type="date"
-                value={form.scheduledDate}
-                onChange={(event) => setForm({ ...form, scheduledDate: event.target.value })}
-                required
-              />
-              <input
-                className="sv-input"
-                placeholder="10:00 AM"
-                value={form.timeSlot}
-                onChange={(event) => setForm({ ...form, timeSlot: event.target.value })}
-                required
-              />
-              <button className="md:col-span-2 sv-btn disabled:cursor-not-allowed disabled:opacity-60" disabled={!currentUserId}>
-                Make Booking
-              </button>
-            </form>
+                <Link href={`/sign-in?redirect_url=${encodeURIComponent(`/book?providerId=${providerId}`)}`} className="sv-btn" style={{ display: "inline-block", textDecoration: "none" }}>
+                  Sign In To Book
+                </Link>
+              ) : (
+                <Link href={`/book?providerId=${providerId}`} className="sv-btn" style={{ display: "inline-block", textDecoration: "none" }}>
+                  Continue To Booking
+                </Link>
+              )}
+            </section>
               <aside className="sv-card p-4 space-y-3">
                 <h3 className="font-semibold">Pricing Breakdown</h3>
                 <p className="sv-subtitle">Base Price: Rs {selectedService?.price || provider.basePrice || 0}</p>
@@ -183,14 +113,6 @@ export default function ProviderDetailsPage() {
               </aside>
             </div>
           </>
-        ) : null}
-
-        {message ? <p className="text-green-700">{message}</p> : null}
-        {createdBooking ? (
-          <div className="rounded border p-3 text-sm">
-            <p>Booking ID: {createdBooking._id}</p>
-            <p>Status: {statusLabel(createdBooking.status)}</p>
-          </div>
         ) : null}
       </div>
     </main>

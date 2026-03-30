@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AppNav from "@/components/AppNav";
 
 export default function ProviderDashboardPage() {
+  const router = useRouter();
   const [provider, setProvider] = useState(null);
   const [stats, setStats] = useState({ services: 0, bookings: 0, pending: 0 });
   const [error, setError] = useState("");
@@ -15,7 +17,36 @@ export default function ProviderDashboardPage() {
         const meResponse = await fetch("/api/me");
         const meData = await meResponse.json();
         if (!meResponse.ok) throw new Error(meData.error || "Failed to load account");
-        if (!meData.provider?._id) throw new Error("Provider profile not found for this account");
+        if (meData.user?.role === "user") {
+          router.replace("/user/dashboard");
+          return;
+        }
+        if (meData.user?.role === "admin") {
+          router.replace("/admin/dashboard");
+          return;
+        }
+        if (!meData.provider?._id) {
+          const createResponse = await fetch("/api/providers", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              businessName: meData.user?.name ? `${meData.user.name} Services` : "Provider Services",
+            }),
+          });
+          if (!createResponse.ok) {
+            const createData = await createResponse.json().catch(() => ({}));
+            const msg = createData.error || "Provider profile not found for this account";
+            if (!String(msg).toLowerCase().includes("already exists")) {
+              throw new Error(msg);
+            }
+          }
+
+          const meRetryResponse = await fetch("/api/me");
+          const meRetryData = await meRetryResponse.json();
+          if (!meRetryResponse.ok) throw new Error(meRetryData.error || "Failed to load account");
+          if (!meRetryData.provider?._id) throw new Error("Provider profile not found for this account");
+          meData.provider = meRetryData.provider;
+        }
 
         const providerResponse = await fetch(`/api/providers/${meData.provider._id}`);
         const providerData = await providerResponse.json();
@@ -37,7 +68,7 @@ export default function ProviderDashboardPage() {
     }
 
     loadDashboard();
-  }, []);
+  }, [router]);
 
   return (
     <main className="sv-page">

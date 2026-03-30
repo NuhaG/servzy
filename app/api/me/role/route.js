@@ -1,29 +1,21 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { connectDB } from "@/lib/db";
-import User from "@/models/User";
 import { ROLES } from "@/lib/roles";
 import { syncClerkUserRole } from "@/lib/clerk";
+import { getSessionUser } from "@/lib/rbac";
 
 const ALLOWED_SELF_ASSIGN = new Set([ROLES.USER, ROLES.PROVIDER]);
 
 export async function PATCH(req) {
   try {
-    await connectDB();
-    const { userId } = await auth();
+    const { userId, user } = await getSessionUser({ createIfMissing: true });
 
-    if (!userId) {
+    if (!userId || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { role } = await req.json();
     if (!ALLOWED_SELF_ASSIGN.has(role)) {
       return NextResponse.json({ error: "Invalid role" }, { status: 400 });
-    }
-
-    const user = await User.findOne({ clerkId: userId });
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     if (user.role === ROLES.ADMIN) {
@@ -45,4 +37,3 @@ export async function PATCH(req) {
     return NextResponse.json({ error: "Failed to update role" }, { status: 500 });
   }
 }
-
