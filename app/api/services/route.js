@@ -8,19 +8,36 @@ import { ROLES } from "@/lib/roles";
 // GET all services
 export async function GET(req) {
   try {
-    await connectDB();
+    const conn = await connectDB();
+    const { searchParams } = new URL(req.url);
+    const debug = searchParams.get("debug") === "1";
 
-    const services = await Service.find({ isActive: true })
+    const services = await Service.find({})
       .populate({
         path: "providerId",
-        select: "businessName location avgRating status blocked",
+        select:
+          "businessName location avgRating reliabilityScore distance lat lng status blocked",
         match: { blocked: { $ne: true } },
       })
       .sort({ createdAt: -1 });
 
-    const visibleServices = services.filter((item) => item.providerId);
+    if (debug) {
+      const db = conn?.connection?.db;
+      const dbName = db?.databaseName || null;
+      const servicesCount = await Service.countDocuments({});
+      const providersCount = await Provider.countDocuments({});
+      return NextResponse.json(
+        {
+          dbName,
+          servicesCount,
+          providersCount,
+          sampleService: services[0] || null,
+        },
+        { status: 200 }
+      );
+    }
 
-    return NextResponse.json(visibleServices, { status: 200 });
+    return NextResponse.json(services, { status: 200 });
   } catch (error) {
     console.error("GET /api/services failed:", error);
     return NextResponse.json(
