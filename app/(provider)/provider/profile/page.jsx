@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import AppNav from "@/components/AppNav";
 
 export default function ProviderProfilePage() {
@@ -172,12 +171,7 @@ export default function ProviderProfilePage() {
               {/* Preview */}
               <div className="shrink-0">
                 {preview ? (
-                  //   <img
-                  //     src={preview}
-                  //     alt="Profile preview"
-                  //     className="h-24 w-24 rounded-lg object-cover"
-                  //   />
-                  <Image
+                  <img
                     src={preview}
                     alt="Profile preview"
                     className="h-24 w-24 rounded-lg object-cover"

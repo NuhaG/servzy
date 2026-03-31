@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AppNav from "@/components/AppNav";
-import Image from "next/image";
 
 export default function ProviderDashboardPage() {
   const router = useRouter();
@@ -102,7 +101,7 @@ export default function ProviderDashboardPage() {
               ) : null}
             </div>
             {provider?.photo && (
-              <Image
+              <img
                 src={provider.photo}
                 alt={provider.businessName}
                 className="h-20 w-20 rounded-lg object-cover"
