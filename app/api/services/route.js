@@ -74,7 +74,7 @@ export async function POST(req) {
       category,
       price,
       priceUnit,
-      images
+      serviceImages
     } = body;
 
     // check provider exists
@@ -109,7 +109,7 @@ export async function POST(req) {
       category,
       price,
       priceUnit,
-      images,
+      serviceImages,
       isActive: true
     });
 

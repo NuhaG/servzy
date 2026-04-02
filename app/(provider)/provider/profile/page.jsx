@@ -46,7 +46,7 @@ export default function ProviderProfilePage() {
           bio: providerData.bio || "",
           location: providerData.location || "",
         });
-        setPreview(providerData.photo || null);
+        setPreview(providerData.avatarUrl || null);
       } catch (err) {
         setError(err.message);
       } finally {

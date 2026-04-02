@@ -14,7 +14,7 @@ const ProviderSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    photo: String,
+    avatarUrl: String,
     bio: String,
     serviceTuple: {
       type: [String],

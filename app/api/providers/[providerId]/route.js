@@ -113,7 +113,7 @@ export async function PATCH(req, { params }) {
                     "servzy/provider_profiles"
                 );
                 if (result) {
-                    updates.photo = result.secure_url;
+                    updates.avatarUrl = result.secure_url;
                 } else {
                     return NextResponse.json(
                         { error: "Failed to upload profile picture" },

@@ -150,6 +150,12 @@ export default function ProviderDashboardPage() {
           >
             Booking Requests
           </Link>
+          <Link
+            href="/provider/complaints"
+            className="sv-card p-4 hover:translate-y-0.5 transition-transform"
+          >
+            Complaints
+          </Link>
         </div>
       </div>
     </main>

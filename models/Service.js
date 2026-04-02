@@ -18,7 +18,7 @@ const ServiceSchema = new mongoose.Schema(
       enum: ["per_hour", "per_job", "per_day"],
       default: "per_hour",
     },
-    images: [String],
+    serviceImages: [String],
     isActive: {
       type: Boolean,
       default: true,

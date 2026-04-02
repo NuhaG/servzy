@@ -20,12 +20,28 @@ export const uploadToCloudinary = async (fileBuffer, folder = "servzy") => {
           (error, result) => {
             if (error) return reject(error);
             resolve(result);
-          }
+          },
         )
         .end(fileBuffer);
     });
   } catch (error) {
     console.error("Cloudinary upload failed:", error);
+    return null;
+  }
+};
+
+export const deleteFromCloudinary = async (publicId) => {
+  try {
+    if (!publicId) return null;
+
+    return new Promise((resolve, reject) => {
+      cloudinary.uploader.destroy(publicId, (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      });
+    });
+  } catch (error) {
+    console.error("Cloudinary delete failed:", error);
     return null;
   }
 };
