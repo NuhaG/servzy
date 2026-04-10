@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import AppNav from "@/components/AppNav";
+import ProviderMap from "./ProviderMap";
 
 function formatPrice(price, unit) {
   const unitMap = { per_hour: "/hour", per_job: "/job", per_day: "/day" };
@@ -81,6 +82,28 @@ export default function PublicServicesPage() {
 
     return output;
   }, [services, search, category, maxPrice, minRating, reliability, verifiedOnly, sortBy]);
+
+  const mapProviders = useMemo(() => {
+    const deduped = new Map();
+    filtered.forEach((service) => {
+      const provider = service.providerId || {};
+      const lat = Number(provider.lat);
+      const lng = Number(provider.lng);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      const key = provider._id || `${provider.businessName}-${lat}-${lng}`;
+      if (deduped.has(key)) return;
+      deduped.set(key, {
+        _id: key,
+        businessName: provider.businessName,
+        location: provider.location,
+        avgRating: provider.avgRating,
+        lat,
+        lng,
+        serviceTitle: service.title,
+      });
+    });
+    return Array.from(deduped.values());
+  }, [filtered]);
 
   return (
     <main className="sv-page">
@@ -191,14 +214,14 @@ export default function PublicServicesPage() {
             ) : null}
 
             {!loading && !error && view === "map" ? (
-              <div className="sv-card p-3">
-                <p className="sv-subtitle mb-2">Provider map view</p>
-                <iframe
-                  title="Service Map"
-                  src="https://www.openstreetmap.org/export/embed.html?bbox=72.78%2C18.93%2C72.95%2C19.08&layer=mapnik"
-                  style={{ width: "100%", height: 520, border: 0, borderRadius: 12 }}
-                />
-              </div>
+              <>
+                <ProviderMap providers={mapProviders} />
+                {!mapProviders.length ? (
+                  <div className="sv-card p-3 text-sm text-amber-700">
+                    No provider coordinates available for the current filters.
+                  </div>
+                ) : null}
+              </>
             ) : null}
 
             {!loading && !error && view === "list" ? (
