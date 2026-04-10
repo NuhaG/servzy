@@ -102,7 +102,6 @@ export default function UserReviewsPage() {
               const booking = bookings.find((item) => item._id === bookingId);
               await loadReviews(booking?.serviceId?._id);
             }}
-            required
           >
             <option value="">Select completed booking</option>
             {bookings.map((booking) => (

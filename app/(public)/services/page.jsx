@@ -9,6 +9,10 @@ function formatPrice(price, unit) {
   return `INR ${Number(price || 0).toLocaleString("en-IN")} ${unitMap[unit] || ""}`.trim();
 }
 
+function personImage(seed) {
+  return `https://i.pravatar.cc/320?u=${encodeURIComponent(seed || "provider")}`;
+}
+
 export default function PublicServicesPage() {
   const [services, setServices] = useState([]);
   const [search, setSearch] = useState("");
@@ -201,7 +205,7 @@ export default function PublicServicesPage() {
               <div className="space-y-3">
                 {filtered.map((service) => {
                   const provider = service.providerId || {};
-                  const img = service.images?.[0] || "https://picsum.photos/seed/provider/320/220";
+                  const img = personImage(provider.businessName || service._id);
                   const reliabilityScore = Number(provider.reliabilityScore || 0);
                   return (
                     <div key={service._id} className="sv-card p-3">

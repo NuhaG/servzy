@@ -393,6 +393,9 @@ export default function BookingPage() {
   async function createBooking(event) {
     event.preventDefault();
     setError("");
+    setCreatedBooking(null);
+    setPaymentDone(false);
+    setShowPayModal(false);
     setSubmitting(true);
     try {
       if (currentRole !== "user")
@@ -411,7 +414,6 @@ export default function BookingPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to create booking");
       setCreatedBooking(data);
-      setShowPayModal(true); // open payment modal immediately
     } catch (err) {
       setError(err.message);
     } finally {
@@ -435,9 +437,9 @@ export default function BookingPage() {
       <div className="sv-shell space-y-4">
         {/* header */}
         <section className="sv-card p-5">
-          <h1 className="sv-title">Confirm Your Booking</h1>
+          <h1 className="sv-title">Book Service</h1>
           <p className="sv-subtitle mt-2">
-            Review details and complete your booking below.
+            Review details and create your booking. You can pay now or later.
           </p>
           {error ? (
             <div
@@ -515,7 +517,7 @@ export default function BookingPage() {
               />
 
               <button className="sv-btn md:col-span-2" disabled={submitting}>
-                {submitting ? "Creating Booking…" : "Confirm & Pay"}
+                {submitting ? "Creating Booking…" : "Book Now"}
               </button>
             </form>
 
@@ -631,15 +633,24 @@ export default function BookingPage() {
             style={{ borderLeft: "4px solid #f59e0b" }}
           >
             <p style={{ fontWeight: 700, marginBottom: 6 }}>
-              Booking created but payment was not completed.
+              Booking created successfully.
             </p>
             <p className="sv-subtitle" style={{ marginBottom: 12 }}>
-              Booking ID: <code>{createdBooking._id}</code> — you can retry
-              payment below.
+              Booking ID: <code>{createdBooking._id}</code> — payment is still
+              pending. You can pay now or from My Bookings in the Ongoing tab.
             </p>
-            <button className="sv-btn" onClick={() => setShowPayModal(true)}>
-              Retry Payment
-            </button>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button className="sv-btn" onClick={() => setShowPayModal(true)}>
+                Pay Now
+              </button>
+              <Link
+                href="/user/bookings?tab=ongoing"
+                className="sv-btn-secondary"
+                style={{ textDecoration: "none" }}
+              >
+                Pay From Dashboard
+              </Link>
+            </div>
           </div>
         ) : null}
       </div>
