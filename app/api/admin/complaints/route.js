@@ -22,7 +22,14 @@ export async function GET(request) {
         if (user.role === "admin") {
             const complaints = await Complaint.find({})
                 .populate("userId", "name email")
-                .populate("providerId", "businessName")
+                .populate({
+                    path: "providerId",
+                    select: "businessName userId",
+                    populate: {
+                        path: "userId",
+                        select: "email",
+                    },
+                })
                 .sort({ createdAt: -1 })
                 .lean();
             return NextResponse.json(complaints);

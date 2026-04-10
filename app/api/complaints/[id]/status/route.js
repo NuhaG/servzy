@@ -40,7 +40,7 @@ export async function PUT(request, { params }) {
             updates.internalNotes = internalNotes;
         }
 
-        const updatedComplaint = await Complaint.findByIdAndUpdate(id, updates, {
+        let updatedComplaint = await Complaint.findByIdAndUpdate(id, updates, {
             new: true,
             runValidators: true,
             context: "query",
@@ -48,6 +48,21 @@ export async function PUT(request, { params }) {
 
         if (!updatedComplaint) {
             return NextResponse.json({ error: "Complaint not found" }, { status: 404 });
+        }
+
+        if (user.role === "admin") {
+            updatedComplaint = await updatedComplaint
+                .populate("userId", "name email")
+                .populate({
+                    path: "providerId",
+                    select: "businessName userId",
+                    populate: {
+                        path: "userId",
+                        select: "email",
+                    },
+                });
+        } else {
+            updatedComplaint = await updatedComplaint.populate("providerId", "businessName");
         }
 
         return NextResponse.json(updatedComplaint);

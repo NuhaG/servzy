@@ -73,6 +73,9 @@ export default function AdminComplaintsPage() {
                     <p className="text-xs text-gray-500 mt-1">
                       Provider:{" "}
                       {complaint.providerId?.businessName || "Unknown"}
+                      {complaint.providerId?.userId?.email
+                        ? ` (${complaint.providerId.userId.email})`
+                        : ""}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
                       User:{" "}

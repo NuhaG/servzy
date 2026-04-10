@@ -39,6 +39,14 @@ export async function POST(request) {
         });
 
         await complaint.save();
+        await complaint.populate({
+            path: "providerId",
+            select: "businessName userId",
+            populate: {
+                path: "userId",
+                select: "email",
+            },
+        });
 
         // avoid passing mongoose doc internals to JSON serializer
         return NextResponse.json(complaint.toObject());
@@ -63,7 +71,14 @@ export async function GET(request) {
         }
 
         const complaints = await Complaint.find({ userId: user._id })
-            .populate("providerId", "businessName")
+            .populate({
+                path: "providerId",
+                select: "businessName userId",
+                populate: {
+                    path: "userId",
+                    select: "email",
+                },
+            })
             .sort({ createdAt: -1 })
             .lean();
 
