@@ -28,6 +28,15 @@ const BookingSchema = new mongoose.Schema(
       default: "one-time",
     },
     notes: String,
+
+    // ── Payment fields ──────────────────────────────────────
+    paymentId: String,
+    paymentOrderId: String,
+    paymentStatus: {
+      type: String,
+      enum: ["pending", "paid", "failed"],
+      default: "pending",
+    },
   },
   { timestamps: true },
 );
