@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import Provider from "@/models/Provider";
 import Service from "@/models/Service";
+import Booking from "@/models/Booking";
 import { getSessionUser, hasRole } from "@/lib/rbac";
 import { ROLES } from "@/lib/roles";
 import { uploadToCloudinary } from "@/lib/cloudinary";
@@ -41,9 +42,40 @@ export async function GET(req, { params }) {
             isActive: true
         }).lean();
 
+        // derive live stats from bookings so details page always has real values
+        const bookings = await Booking.find({ providerId: provider._id })
+            .select("status")
+            .lean();
+        const totalBookings = bookings.length;
+        const acceptedOrCompleted = bookings.filter(
+            (item) => item.status === "accepted" || item.status === "completed"
+        ).length;
+        const cancelled = bookings.filter((item) => item.status === "cancelled").length;
+        const rejected = bookings.filter((item) => item.status === "rejected").length;
+
+        const liveAcceptRate = totalBookings
+            ? Math.round((acceptedOrCompleted / totalBookings) * 100)
+            : 0;
+        const cancellationRate = totalBookings
+            ? Math.round(((cancelled + rejected) / totalBookings) * 100)
+            : 0;
+        const liveReliability = totalBookings
+            ? Math.max(0, Math.min(100, Math.round((liveAcceptRate * 0.8) + ((100 - cancellationRate) * 0.2))))
+            : 0;
+
         // combine data
         const result = {
             ...provider,
+            totalBookings,
+            acceptRate: Number.isFinite(Number(provider.acceptRate))
+                ? Number(provider.acceptRate)
+                : liveAcceptRate,
+            reliabilityScore: Number.isFinite(Number(provider.reliabilityScore))
+                ? Number(provider.reliabilityScore)
+                : liveReliability,
+            cancellations: Number.isFinite(Number(provider.cancellations))
+                ? Number(provider.cancellations)
+                : cancelled,
             services
         };
 

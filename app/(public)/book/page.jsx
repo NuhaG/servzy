@@ -2,8 +2,30 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import AppNav from "@/components/AppNav";
+
+const SLOT_OPTIONS = [
+  "09:00 AM",
+  "10:00 AM",
+  "11:00 AM",
+  "12:00 PM",
+  "01:00 PM",
+  "02:00 PM",
+  "03:00 PM",
+  "04:00 PM",
+  "05:00 PM",
+  "06:00 PM",
+];
+
+function slotToMinutes(slot) {
+  const match = String(slot || "").match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return -1;
+  let hour = Number(match[1]) % 12;
+  const minute = Number(match[2]);
+  if (match[3].toUpperCase() === "PM") hour += 12;
+  return hour * 60 + minute;
+}
 
 // ─── tiny helpers ────────────────────────────────────────────────────────────
 function StatusBadge({ status }) {
@@ -324,7 +346,7 @@ function MockPaymentModal({ booking, onSuccess, onFailure, onCancel }) {
 }
 
 // ─── main page ────────────────────────────────────────────────────────────────
-export default function BookingPage() {
+function BookingPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const providerId = searchParams.get("providerId");
@@ -342,6 +364,9 @@ export default function BookingPage() {
   const [paymentDone, setPaymentDone] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotError, setSlotError] = useState("");
 
   useEffect(() => {
     async function loadPage() {
@@ -374,6 +399,53 @@ export default function BookingPage() {
     }
     loadPage();
   }, [providerId, router]);
+
+  useEffect(() => {
+    async function loadAvailability() {
+      if (!providerId || !form.scheduledDate) {
+        setAvailableSlots([]);
+        setSlotError("");
+        setForm((prev) => ({ ...prev, timeSlot: "" }));
+        return;
+      }
+
+      setSlotsLoading(true);
+      setSlotError("");
+      try {
+        const res = await fetch(
+          `/api/providers/${providerId}/availability?date=${encodeURIComponent(form.scheduledDate)}`,
+        );
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to load available slots");
+
+        const selectedDate = new Date(`${form.scheduledDate}T00:00:00`);
+        const now = new Date();
+        const isToday =
+          selectedDate.getFullYear() === now.getFullYear() &&
+          selectedDate.getMonth() === now.getMonth() &&
+          selectedDate.getDate() === now.getDate();
+
+        const futureFiltered = (data.availableSlots || SLOT_OPTIONS).filter((slot) => {
+          if (!isToday) return true;
+          return slotToMinutes(slot) > now.getHours() * 60 + now.getMinutes();
+        });
+
+        setAvailableSlots(futureFiltered);
+        setForm((prev) => ({
+          ...prev,
+          timeSlot: futureFiltered.includes(prev.timeSlot) ? prev.timeSlot : "",
+        }));
+      } catch (err) {
+        setAvailableSlots([]);
+        setForm((prev) => ({ ...prev, timeSlot: "" }));
+        setSlotError(err.message);
+      } finally {
+        setSlotsLoading(false);
+      }
+    }
+
+    loadAvailability();
+  }, [providerId, form.scheduledDate]);
 
   const serviceOptions = useMemo(() => provider?.services || [], [provider]);
   const selectedService = useMemo(
@@ -508,13 +580,37 @@ export default function BookingPage() {
                 }
                 required
               />
-              <input
+              <select
                 className="sv-input"
-                placeholder="e.g. 10:00 AM"
                 value={form.timeSlot}
                 onChange={(e) => setForm({ ...form, timeSlot: e.target.value })}
                 required
-              />
+                disabled={!form.scheduledDate || slotsLoading || !availableSlots.length}
+              >
+                <option value="">
+                  {!form.scheduledDate
+                    ? "Select date first"
+                    : slotsLoading
+                      ? "Loading available slots..."
+                      : availableSlots.length
+                        ? "Select available time slot"
+                        : "No slots available for this date"}
+                </option>
+                {availableSlots.map((slot) => (
+                  <option key={slot} value={slot}>
+                    {slot}
+                  </option>
+                ))}
+              </select>
+
+              {slotError ? (
+                <p className="md:col-span-2 text-sm text-red-700">{slotError}</p>
+              ) : null}
+              {form.scheduledDate && !slotsLoading && !slotError && !availableSlots.length ? (
+                <p className="md:col-span-2 text-sm text-amber-700">
+                  No slots available on this date. Please choose another date.
+                </p>
+              ) : null}
 
               <button className="sv-btn md:col-span-2" disabled={submitting}>
                 {submitting ? "Creating Booking…" : "Book Now"}
@@ -665,6 +761,25 @@ export default function BookingPage() {
         />
       ) : null}
     </main>
+  );
+}
+
+export default function BookingPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="sv-page">
+          <AppNav />
+          <div className="sv-shell">
+            <div className="sv-card p-6">
+              <p className="sv-subtitle">Loading booking page...</p>
+            </div>
+          </div>
+        </main>
+      }
+    >
+      <BookingPageContent />
+    </Suspense>
   );
 }
 

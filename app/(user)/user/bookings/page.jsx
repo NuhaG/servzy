@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import AppNav from "@/components/AppNav";
 
@@ -115,7 +115,7 @@ function MockPaymentModal({ booking, onSuccess, onFailure, onCancel }) {
   );
 }
 
-export default function UserBookingsPage() {
+function UserBookingsPageContent() {
   const searchParams = useSearchParams();
   const [user, setUser] = useState(null);
   const [bookings, setBookings] = useState([]);
@@ -303,5 +303,24 @@ export default function UserBookingsPage() {
         />
       ) : null}
     </main>
+  );
+}
+
+export default function UserBookingsPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="sv-page">
+          <AppNav />
+          <div className="sv-shell">
+            <div className="sv-card p-6">
+              <p className="sv-subtitle">Loading bookings...</p>
+            </div>
+          </div>
+        </main>
+      }
+    >
+      <UserBookingsPageContent />
+    </Suspense>
   );
 }
