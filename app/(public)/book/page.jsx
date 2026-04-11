@@ -2,328 +2,255 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import AppNav from "@/components/AppNav";
 
-// ─── tiny helpers ────────────────────────────────────────────────────────────
+// ─── Status / Payment badges ──────────────────────────────────────────────────
 function StatusBadge({ status }) {
   const map = {
-    pending: { bg: "#fff7e6", color: "#b45309", label: "Pending" },
-    accepted: { bg: "#ecfdf5", color: "#065f46", label: "Accepted" },
-    rejected: { bg: "#fef2f2", color: "#991b1b", label: "Rejected" },
-    completed: { bg: "#f0fdf4", color: "#166534", label: "Completed" },
-    cancelled: { bg: "#f9fafb", color: "#4b5563", label: "Cancelled" },
+    pending:   { bg:"#fefce8", color:"#854d0e", border:"#fde68a",   label:"Pending" },
+    accepted:  { bg:"#f0fdf4", color:"#15803d", border:"#bbf7d0",   label:"Accepted" },
+    rejected:  { bg:"#fff1f2", color:"#b91c1c", border:"#fecaca",   label:"Rejected" },
+    completed: { bg:"#f0fdf4", color:"#166534", border:"#bbf7d0",   label:"Completed" },
+    cancelled: { bg:"#fafafa", color:"#4b5563", border:"#e5e5e5",   label:"Cancelled" },
   };
   const s = map[status] || map.pending;
   return (
-    <span style={{ background: s.bg, color: s.color }} className="sv-pill">
+    <span style={{ background:s.bg, color:s.color, border:`1px solid ${s.border}`,
+      fontSize:11, fontWeight:700, padding:"2px 10px", borderRadius:20 }}>
       {s.label}
     </span>
   );
 }
 
-function PaymentBadge({ status }) {
-  const map = {
-    pending: { bg: "#fff7e6", color: "#b45309", label: "Payment Pending" },
-    paid: { bg: "#ecfdf5", color: "#065f46", label: "Paid" },
-    failed: { bg: "#fef2f2", color: "#991b1b", label: "Payment Failed" },
-  };
-  const s = map[status] || map.pending;
+// ─── Time Picker ─────────────────────────────────────────────────────────────
+function TimePicker({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [h, setH] = useState(10);
+  const [m, setM] = useState(0);
+  const [ampm, setAmpm] = useState("AM");
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handle(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, []);
+
+  function adjH(d) { setH((prev) => ((prev - 1 + d + 12) % 12) + 1); }
+  function adjM(d) { setM((prev) => (prev + d + 60) % 60); }
+
+  function confirm() {
+    const txt = `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")} ${ampm}`;
+    onChange(txt);
+    setOpen(false);
+  }
+
   return (
-    <span style={{ background: s.bg, color: s.color }} className="sv-pill">
-      {s.label}
+    <div ref={ref} style={{ position:"relative" }}>
+      <div
+        onClick={() => setOpen((o) => !o)}
+        style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+          padding:"10px 13px", border:"1px solid #fecaca", borderRadius:10,
+          background:"#fef2f2", cursor:"pointer", fontSize:13,
+          color: value ? "#111" : "#aaa" }}
+      >
+        <span>{value || "Select time"}</span>
+        <span style={{ color:"#b91c1c" }}>🕐</span>
+      </div>
+
+      {open && (
+        <div style={{ position:"absolute", top:"calc(100% + 6px)", left:0, zIndex:30,
+          background:"#fff", border:"1px solid #fecaca", borderRadius:12,
+          padding:16, boxShadow:"0 8px 32px rgba(185,28,28,0.12)", width:240 }}>
+          {/* Wheels */}
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:6, marginBottom:12 }}>
+            {/* Hour */}
+            <div style={{ display:"flex", flexDirection:"column", alignItems:"center" }}>
+              <button onClick={() => adjH(1)} style={wheelBtn}>▲</button>
+              <div style={wheelVal}>{String(h).padStart(2,"0")}</div>
+              <button onClick={() => adjH(-1)} style={wheelBtn}>▼</button>
+            </div>
+            <span style={{ fontSize:24, fontWeight:700, color:"#b91c1c", marginBottom:4 }}>:</span>
+            {/* Minute */}
+            <div style={{ display:"flex", flexDirection:"column", alignItems:"center" }}>
+              <button onClick={() => adjM(15)} style={wheelBtn}>▲</button>
+              <div style={wheelVal}>{String(m).padStart(2,"0")}</div>
+              <button onClick={() => adjM(-15)} style={wheelBtn}>▼</button>
+            </div>
+            {/* AM/PM */}
+            <div style={{ display:"flex", flexDirection:"column", gap:2, marginLeft:6 }}>
+              {["AM","PM"].map((p) => (
+                <button key={p} onClick={() => setAmpm(p)}
+                  style={{ padding:"6px 10px", border:"1px solid #fecaca", borderRadius:6,
+                    fontSize:11, fontWeight:700, cursor:"pointer",
+                    background: ampm === p ? "#7f1d1d" : "#fef2f2",
+                    color: ampm === p ? "#fff" : "#888" }}>
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button onClick={confirm}
+            style={{ width:"100%", padding:8, background:"#7f1d1d", color:"#fff",
+              border:"none", borderRadius:8, fontSize:13, fontWeight:700, cursor:"pointer" }}>
+            Confirm Time
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+const wheelBtn = { background:"none", border:"none", cursor:"pointer", color:"#b91c1c", fontSize:16, padding:"2px 8px", lineHeight:1 };
+const wheelVal = { fontSize:28, fontWeight:800, color:"#111", minWidth:44, textAlign:"center", letterSpacing:"-0.03em" };
+
+// ─── Coupon system ────────────────────────────────────────────────────────────
+const COUPONS = [
+  { code:"CLEAN20", desc:"20% off on all services",  pct:20 },
+  { code:"FIRST15", desc:"15% off for first booking", pct:15 },
+  { code:"SAVE200", desc:"Flat ₹200 off",             flat:200 },
+];
+
+// ─── Day chip ────────────────────────────────────────────────────────────────
+function DayChip({ day, active, onToggle }) {
+  return (
+    <span onClick={onToggle}
+      style={{ padding:"5px 12px", borderRadius:20, fontSize:12, fontWeight:600,
+        cursor:"pointer", border:"1px solid", transition:"all 0.15s",
+        background: active ? "#7f1d1d" : "#fff",
+        color: active ? "#fff" : "#888",
+        borderColor: active ? "#7f1d1d" : "#fecaca" }}>
+      {day}
     </span>
   );
 }
+const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 
-// ─── mock payment modal ───────────────────────────────────────────────────────
-function MockPaymentModal({ booking, onSuccess, onFailure, onCancel }) {
-  const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState("confirm"); // confirm | processing | done | failed
+// ─── Summary row ─────────────────────────────────────────────────────────────
+function SumRow({ label, value, highlight }) {
+  return (
+    <div style={{ display:"flex", justifyContent:"space-between", fontSize:13, padding:"5px 0" }}>
+      <span style={{ color: highlight ? "#15803d" : "#888" }}>{label}</span>
+      <span style={{ fontWeight:600, color: highlight ? "#15803d" : "#111" }}>{value}</span>
+    </div>
+  );
+}
+
+// ─── Mock payment modal ───────────────────────────────────────────────────────
+function MockPaymentModal({ booking, total, onSuccess, onFailure, onCancel }) {
+  const [step, setStep] = useState("confirm");
 
   async function handlePay(simulateFailure) {
-    setLoading(true);
     setStep("processing");
-
-    // small artificial delay so it feels like something is happening
     await new Promise((r) => setTimeout(r, 1800));
-
     try {
       const res = await fetch("/api/payment/mock", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookingId: booking._id, simulateFailure }),
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ bookingId:booking._id, simulateFailure }),
       });
       const data = await res.json();
-
-      if (data.success) {
-        setStep("done");
-        setTimeout(() => onSuccess(data), 1200);
-      } else {
-        setStep("failed");
-        setTimeout(() => onFailure(data.message), 1200);
-      }
+      if (data.success) { setStep("done"); setTimeout(() => onSuccess(data), 1200); }
+      else { setStep("failed"); setTimeout(() => onFailure(data.message), 1200); }
     } catch {
-      setStep("failed");
-      setTimeout(
-        () => onFailure("Something went wrong. Please try again."),
-        1200,
-      );
-    } finally {
-      setLoading(false);
+      setStep("failed"); setTimeout(() => onFailure("Something went wrong."), 1200);
     }
   }
 
   return (
-    /* backdrop */
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.45)",
-        backdropFilter: "blur(4px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 50,
-        padding: 20,
-      }}
-    >
-      <div
-        className="sv-card"
-        style={{
-          width: "100%",
-          maxWidth: 400,
-          padding: 32,
-          textAlign: "center",
-          animation: "fadeUp .25s ease",
-        }}
-      >
-        {/* ── confirm step ── */}
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.45)",
+      backdropFilter:"blur(4px)", display:"flex", alignItems:"center",
+      justifyContent:"center", zIndex:50, padding:20 }}>
+      <div style={{ background:"#fff", borderRadius:16, border:"1px solid #fecaca",
+        width:"100%", maxWidth:400, padding:32, textAlign:"center",
+        boxShadow:"0 20px 60px rgba(0,0,0,0.15)" }}>
+
         {step === "confirm" && (
           <>
-            {/* mock badge */}
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                background: "rgba(201,75,44,0.08)",
-                borderRadius: 999,
-                padding: "4px 12px",
-                marginBottom: 20,
-                fontSize: 12,
-                fontWeight: 700,
-                color: "var(--sv-accent)",
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-              }}
-            >
+            <div style={{ display:"inline-flex", alignItems:"center", gap:6,
+              background:"rgba(185,28,28,0.08)", borderRadius:999, padding:"4px 14px",
+              marginBottom:20, fontSize:11, fontWeight:700, color:"#b91c1c",
+              textTransform:"uppercase", letterSpacing:"0.06em" }}>
               🧪 Sandbox / Test Mode
             </div>
-
-            <p
-              style={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: "1.4rem",
-                fontWeight: 700,
-                marginBottom: 4,
-              }}
-            >
-              Complete Payment
+            <p style={{ fontSize:"1.3rem", fontWeight:800, marginBottom:4 }}>Complete Payment</p>
+            <p style={{ fontSize:13, color:"#888", marginBottom:20 }}>
+              Simulated payment — no real money charged.
             </p>
-            <p className="sv-subtitle" style={{ marginBottom: 24 }}>
-              This is a simulated payment — no real money will be charged.
-            </p>
-
-            {/* amount pill */}
-            <div
-              style={{
-                background: "var(--sv-bg)",
-                borderRadius: 12,
-                padding: "16px 20px",
-                marginBottom: 24,
-              }}
-            >
-              <p
-                className="sv-subtitle"
-                style={{ fontSize: 12, marginBottom: 2 }}
-              >
-                Total Amount
-              </p>
-              <p
-                style={{
-                  fontSize: "2rem",
-                  fontWeight: 800,
-                  color: "var(--sv-accent)",
-                }}
-              >
-                ₹{booking.amount}
-              </p>
-              <p className="sv-subtitle" style={{ fontSize: 12, marginTop: 2 }}>
+            <div style={{ background:"#fef2f2", borderRadius:12, padding:"14px 18px", marginBottom:20 }}>
+              <p style={{ fontSize:12, color:"#888", marginBottom:2 }}>Total Amount</p>
+              <p style={{ fontSize:"2rem", fontWeight:800, color:"#b91c1c" }}>₹{total}</p>
+              <p style={{ fontSize:12, color:"#888", marginTop:2 }}>
                 Booking #{String(booking._id).slice(-6).toUpperCase()}
               </p>
             </div>
-
-            {/* fake card display */}
-            <div
-              style={{
-                border: "1px solid var(--sv-border)",
-                borderRadius: 12,
-                padding: "12px 16px",
-                marginBottom: 24,
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                textAlign: "left",
-              }}
-            >
-              <div
-                style={{
-                  width: 40,
-                  height: 28,
-                  borderRadius: 4,
-                  background: "linear-gradient(135deg,#c94b2c,#dc143c)",
-                  flexShrink: 0,
-                }}
-              />
+            <div style={{ border:"1px solid #fecaca", borderRadius:10, padding:"10px 14px",
+              marginBottom:20, display:"flex", alignItems:"center", gap:12, textAlign:"left" }}>
+              <div style={{ width:40, height:28, borderRadius:4,
+                background:"linear-gradient(135deg,#b91c1c,#dc143c)", flexShrink:0 }} />
               <div>
-                <p style={{ fontWeight: 600, fontSize: 14 }}>
-                  •••• •••• •••• 4242
-                </p>
-                <p className="sv-subtitle" style={{ fontSize: 11 }}>
-                  Test Card — expires 12/99
-                </p>
+                <p style={{ fontWeight:600, fontSize:13 }}>•••• •••• •••• 4242</p>
+                <p style={{ fontSize:11, color:"#888" }}>Test Card — expires 12/99</p>
               </div>
             </div>
-
-            <button
-              className="sv-btn"
-              style={{ width: "100%", marginBottom: 10, fontSize: 16 }}
-              onClick={() => handlePay(false)}
-              disabled={loading}
-            >
-              Pay ₹{booking.amount}
+            <button onClick={() => handlePay(false)}
+              style={{ width:"100%", padding:"11px", background:"#7f1d1d", color:"#fff",
+                border:"none", borderRadius:10, fontSize:14, fontWeight:700,
+                cursor:"pointer", marginBottom:8 }}>
+              Pay ₹{total}
             </button>
-            <button
-              style={{
-                width: "100%",
-                padding: "10px 14px",
-                border: "1px solid #fca5a5",
-                borderRadius: 10,
-                background: "#fef2f2",
-                color: "#991b1b",
-                fontWeight: 600,
-                cursor: "pointer",
-                marginBottom: 10,
-              }}
-              onClick={() => handlePay(true)}
-              disabled={loading}
-            >
+            <button onClick={() => handlePay(true)}
+              style={{ width:"100%", padding:"10px", border:"1px solid #fecaca",
+                borderRadius:10, background:"#fef2f2", color:"#b91c1c",
+                fontWeight:600, cursor:"pointer", fontSize:13, marginBottom:8 }}>
               Simulate Failure
             </button>
-            <button
-              className="sv-btn-secondary"
-              style={{ width: "100%" }}
-              onClick={onCancel}
-              disabled={loading}
-            >
+            <button onClick={onCancel}
+              style={{ width:"100%", padding:"10px", border:"1px solid #e5e5e5",
+                borderRadius:10, background:"#fff", color:"#555",
+                fontWeight:600, cursor:"pointer", fontSize:13 }}>
               Cancel
             </button>
           </>
         )}
 
-        {/* ── processing step ── */}
         {step === "processing" && (
           <>
-            <div
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: "50%",
-                border: "4px solid var(--sv-border)",
-                borderTop: "4px solid var(--sv-accent)",
-                animation: "spin 0.8s linear infinite",
-                margin: "0 auto 20px",
-              }}
-            />
-            <p style={{ fontWeight: 700, fontSize: "1.1rem", marginBottom: 6 }}>
-              Processing Payment…
-            </p>
-            <p className="sv-subtitle">
-              Please wait, do not close this window.
-            </p>
+            <div style={{ width:52, height:52, borderRadius:"50%",
+              border:"4px solid #fecaca", borderTop:"4px solid #b91c1c",
+              animation:"spin 0.8s linear infinite", margin:"0 auto 20px" }} />
+            <p style={{ fontWeight:700, fontSize:"1.1rem", marginBottom:6 }}>Processing…</p>
+            <p style={{ fontSize:13, color:"#888" }}>Please wait, do not close this window.</p>
           </>
         )}
 
-        {/* ── success step ── */}
         {step === "done" && (
           <>
-            <div
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: "50%",
-                background: "#ecfdf5",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto 20px",
-                fontSize: 32,
-              }}
-            >
-              ✅
-            </div>
-            <p
-              style={{ fontWeight: 700, fontSize: "1.2rem", color: "#065f46" }}
-            >
-              Payment Successful!
-            </p>
-            <p className="sv-subtitle" style={{ marginTop: 6 }}>
-              Redirecting you now…
-            </p>
+            <div style={{ width:60, height:60, borderRadius:"50%", background:"#f0fdf4",
+              display:"flex", alignItems:"center", justifyContent:"center",
+              margin:"0 auto 16px", fontSize:30 }}>✅</div>
+            <p style={{ fontWeight:800, fontSize:"1.2rem", color:"#15803d" }}>Payment Successful!</p>
+            <p style={{ fontSize:13, color:"#888", marginTop:6 }}>Redirecting you now…</p>
           </>
         )}
 
-        {/* ── failed step ── */}
         {step === "failed" && (
           <>
-            <div
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: "50%",
-                background: "#fef2f2",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto 20px",
-                fontSize: 32,
-              }}
-            >
-              ❌
-            </div>
-            <p
-              style={{ fontWeight: 700, fontSize: "1.2rem", color: "#991b1b" }}
-            >
-              Payment Failed
-            </p>
-            <p className="sv-subtitle" style={{ marginTop: 6 }}>
-              Closing in a moment…
-            </p>
+            <div style={{ width:60, height:60, borderRadius:"50%", background:"#fff1f2",
+              display:"flex", alignItems:"center", justifyContent:"center",
+              margin:"0 auto 16px", fontSize:30 }}>❌</div>
+            <p style={{ fontWeight:800, fontSize:"1.2rem", color:"#b91c1c" }}>Payment Failed</p>
+            <p style={{ fontSize:13, color:"#888", marginTop:6 }}>Closing in a moment…</p>
           </>
         )}
-      </div>
 
-      <style>{`
-        @keyframes fadeUp  { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:none } }
-        @keyframes spin    { to   { transform: rotate(360deg) } }
-      `}</style>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      </div>
     </div>
   );
 }
 
-// ─── main page ────────────────────────────────────────────────────────────────
+// ─── Main page ────────────────────────────────────────────────────────────────
 export default function BookingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -332,88 +259,108 @@ export default function BookingPage() {
   const [provider, setProvider] = useState(null);
   const [currentRole, setCurrentRole] = useState("");
   const [form, setForm] = useState({
-    serviceId: "",
-    scheduledDate: "",
-    timeSlot: "",
-    type: "one-time",
+    serviceId:"", scheduledDate:"", timeSlot:"", type:"one-time",
+    contractMonths:3, contractDays:3, selectedDays:["Mon","Wed","Fri"],
+    notes:"", advanceOnly:false,
   });
   const [createdBooking, setCreatedBooking] = useState(null);
   const [showPayModal, setShowPayModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [paymentDone, setPaymentDone] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    async function loadPage() {
+    async function load() {
       try {
-        setError("");
         if (!providerId) throw new Error("Provider is required.");
-
         const meRes = await fetch("/api/me");
         const meData = await meRes.json();
         if (!meRes.ok) {
-          router.push(
-            `/sign-in?redirect_url=${encodeURIComponent(`/book?providerId=${providerId}`)}`,
-          );
+          router.push(`/sign-in?redirect_url=${encodeURIComponent(`/book?providerId=${providerId}`)}`);
           return;
         }
-        if (meData.user?.role !== "user")
-          throw new Error("Only user accounts can create bookings.");
+        if (meData.user?.role !== "user") throw new Error("Only user accounts can create bookings.");
         setCurrentRole(meData.user?.role || "");
-
         const provRes = await fetch(`/api/providers/${providerId}`);
         const provData = await provRes.json();
-        if (!provRes.ok)
-          throw new Error(provData.error || "Failed to load provider");
+        if (!provRes.ok) throw new Error(provData.error || "Failed to load provider");
         setProvider(provData);
-        if (provData.services?.[0]?._id)
-          setForm((p) => ({ ...p, serviceId: provData.services[0]._id }));
+        if (provData.services?.[0]?._id) setForm((f) => ({ ...f, serviceId:provData.services[0]._id }));
       } catch (err) {
         setError(err.message);
       }
     }
-    loadPage();
+    load();
   }, [providerId, router]);
 
   const serviceOptions = useMemo(() => provider?.services || [], [provider]);
-  const selectedService = useMemo(
-    () =>
-      serviceOptions.find((s) => s._id === form.serviceId) || serviceOptions[0],
-    [serviceOptions, form.serviceId],
-  );
-  const totalAmount = useMemo(
-    () =>
-      Number(selectedService?.price || provider?.basePrice || 0) +
-      Number(provider?.bookingCharge || 0) +
-      Number(provider?.consultationFee || 0) +
-      Number(provider?.serviceFee || 0),
-    [selectedService, provider],
-  );
+  const selectedService = useMemo(() =>
+    serviceOptions.find((s) => s._id === form.serviceId) || serviceOptions[0],
+  [serviceOptions, form.serviceId]);
 
-  async function createBooking(event) {
-    event.preventDefault();
+  const basePrice = Number(selectedService?.price || provider?.basePrice || 0);
+  const bookingCharge = Number(provider?.bookingCharge || 50);
+  const serviceFee = Number(provider?.serviceFee || 30);
+
+  const totalVisits = useMemo(() => {
+    if (form.type !== "contract") return 1;
+    return form.contractMonths * 4 * form.contractDays;
+  }, [form.type, form.contractMonths, form.contractDays]);
+
+  const baseTotal = basePrice * totalVisits;
+  const fees = bookingCharge + serviceFee;
+  const subtotal = baseTotal + fees;
+
+  const discount = useMemo(() => {
+    if (!appliedCoupon) return 0;
+    if (appliedCoupon.pct) return Math.round(baseTotal * appliedCoupon.pct / 100);
+    if (appliedCoupon.flat) return appliedCoupon.flat;
+    return 0;
+  }, [appliedCoupon, baseTotal]);
+
+  const totalPayable = subtotal - discount;
+  const advanceAmount = Math.round(totalPayable * 0.3);
+  const showCoupons = subtotal > 1500;
+
+  function toggleDay(day) {
+    setForm((f) => ({
+      ...f,
+      selectedDays: f.selectedDays.includes(day)
+        ? f.selectedDays.filter((d) => d !== day)
+        : [...f.selectedDays, day],
+    }));
+  }
+
+  async function createBooking() {
     setError("");
     setCreatedBooking(null);
     setPaymentDone(false);
-    setShowPayModal(false);
     setSubmitting(true);
     try {
-      if (currentRole !== "user")
-        throw new Error("Only user accounts can create bookings.");
+      if (currentRole !== "user") throw new Error("Only user accounts can create bookings.");
       const res = await fetch("/api/bookings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
         body: JSON.stringify({
           serviceId: form.serviceId,
           scheduledDate: form.scheduledDate,
           timeSlot: form.timeSlot,
           type: form.type,
-          notes: "Created from booking page",
+          contractMonths: form.type === "contract" ? form.contractMonths : undefined,
+          contractDaysPerWeek: form.type === "contract" ? form.contractDays : undefined,
+          preferredDays: form.type === "contract" ? form.selectedDays : undefined,
+          notes: form.notes,
+          couponCode: appliedCoupon?.code,
+          amount: form.advanceOnly ? advanceAmount : totalPayable,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to create booking");
       setCreatedBooking(data);
+      setShowConfirmModal(false);
+      setShowPayModal(true);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -421,260 +368,404 @@ export default function BookingPage() {
     }
   }
 
-  function handlePaySuccess() {
-    setShowPayModal(false);
-    setPaymentDone(true);
-  }
+  const cs = { background:"#fff", border:"1px solid #fecaca", borderRadius:16,
+    padding:"24px", boxShadow:"0 4px 24px rgba(185,28,28,0.05)" };
 
-  function handlePayFailure(msg) {
-    setShowPayModal(false);
-    setError(msg || "Payment failed. You can retry from your bookings page.");
-  }
+  const sectionLabel = {
+    fontSize:11, fontWeight:700, letterSpacing:"0.09em", textTransform:"uppercase",
+    color:"#b91c1c", marginBottom:14, display:"flex", alignItems:"center", gap:8,
+  };
+
+  const fieldLabel = { fontSize:12, fontWeight:600, color:"#555", marginBottom:5, display:"block" };
+
+  const inputStyle = { width:"100%", padding:"10px 13px", border:"1px solid #fecaca",
+    borderRadius:10, fontSize:13, color:"#111", background:"#fef2f2", outline:"none",
+    fontFamily:"inherit" };
 
   return (
-    <main className="sv-page">
-      <AppNav />
-      <div className="sv-shell space-y-4">
-        {/* header */}
-        <section className="sv-card p-5">
-          <h1 className="sv-title">Book Service</h1>
-          <p className="sv-subtitle mt-2">
-            Review details and create your booking. You can pay now or later.
-          </p>
-          {error ? (
-            <div
-              style={{
-                marginTop: 12,
-                padding: "10px 14px",
-                background: "#fef2f2",
-                border: "1px solid #fca5a5",
-                borderRadius: 10,
-                color: "#991b1b",
-                fontSize: 14,
-              }}
-            >
-              {error}
+    <>
+      <style>{`
+        .bk-page { min-height:100vh; background:#fef2f2; }
+        .bk-shell { max-width:960px; margin:0 auto; padding:32px 16px 64px; }
+        .bk-layout { display:grid; grid-template-columns:1.6fr 1fr; gap:16px; align-items:start; }
+        @media(max-width:680px) { .bk-layout { grid-template-columns:1fr; } }
+        .bk-type-toggle { display:grid; grid-template-columns:1fr 1fr; border:1px solid #fecaca; border-radius:10px; overflow:hidden; }
+        .bk-type-btn { padding:10px; font-size:13px; font-weight:600; cursor:pointer; border:none; background:#fff; color:#888; transition:all 0.15s; font-family:inherit; }
+        .bk-type-btn.active { background:#7f1d1d; color:#fff; }
+        .bk-type-btn:first-child { border-right:1px solid #fecaca; }
+        .bk-submit { width:100%; padding:13px; background:#7f1d1d; color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; transition:background 0.15s,transform 0.1s; font-family:inherit; box-shadow:0 4px 16px rgba(127,29,29,0.22); }
+        .bk-submit:hover:not(:disabled) { background:#991b1b; transform:translateY(-1px); }
+        .bk-submit:disabled { opacity:0.5; cursor:not-allowed; }
+        .bk-coupon-item { display:flex; align-items:center; justify-content:space-between; padding:9px 13px; border:1px solid #fecaca; border-radius:9px; background:#fef2f2; cursor:pointer; transition:all 0.15s; margin-bottom:6px; }
+        .bk-coupon-item:hover { border-color:#b91c1c; background:#fff1f2; }
+        .bk-coupon-item.applied { border-color:#15803d; background:#f0fdf4; }
+        /* Confirm modal */
+        .bk-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; z-index:100; padding:16px; }
+        .bk-modal { background:#fff; border-radius:16px; border:1px solid #fecaca; width:100%; max-width:480px; box-shadow:0 20px 60px rgba(0,0,0,0.15); animation:bkUp 0.25s ease; overflow:hidden; }
+        @keyframes bkUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
+        .bk-modal-head { padding:20px 24px; border-bottom:1px solid #fef2f2; border-left:4px solid #b91c1c; }
+        .bk-modal-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #fef2f2; font-size:13px; }
+        .bk-modal-row:last-child { border-bottom:none; }
+        .bk-adv-toggle { display:grid; grid-template-columns:1fr 1fr; border:1px solid #fecaca; border-radius:9px; overflow:hidden; margin:10px 0; }
+        .bk-adv-btn { padding:9px; font-size:12px; font-weight:600; cursor:pointer; border:none; background:#fef2f2; color:#888; transition:all 0.15s; font-family:inherit; }
+        .bk-adv-btn.active { background:#7f1d1d; color:#fff; }
+        .bk-adv-btn:first-child { border-right:1px solid #fecaca; }
+        .bk-sel { width:100%; padding:10px 32px 10px 13px; border:1px solid #fecaca; border-radius:10px; font-size:13px; color:#111; background:#fef2f2; outline:none; cursor:pointer; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23b91c1c' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; font-family:inherit; }
+      `}</style>
+
+      <main className="bk-page">
+        <AppNav />
+        <div className="bk-shell">
+
+          {/* Header */}
+          <div style={{ background:"#fff", border:"1px solid #fecaca", borderLeft:"4px solid #b91c1c",
+            borderRadius:16, padding:"22px 28px", marginBottom:20,
+            boxShadow:"0 4px 24px rgba(185,28,28,0.06)" }}>
+            <div style={{ fontSize:11, fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase", color:"#b91c1c", marginBottom:4 }}>User</div>
+            <h1 style={{ fontSize:22, fontWeight:800, color:"#111", letterSpacing:"-0.02em", margin:"0 0 3px" }}>Book a Service</h1>
+            <p style={{ fontSize:13, color:"#888", margin:0 }}>Review details, select timing, and confirm your booking.</p>
+            {error && (
+              <div style={{ marginTop:12, padding:"10px 14px", background:"#fef2f2",
+                border:"1px solid #fecaca", borderRadius:10, color:"#b91c1c", fontSize:13 }}>
+                {error}
+              </div>
+            )}
+          </div>
+
+          {provider ? (
+            <div className="bk-layout">
+
+              {/* ── Left: Form ── */}
+              <div style={cs}>
+
+                {/* Provider pill */}
+                <div style={{ background:"#fef2f2", border:"1px solid #fecaca", borderRadius:10,
+                  padding:"12px 16px", display:"flex", alignItems:"center",
+                  justifyContent:"space-between", marginBottom:20 }}>
+                  <div>
+                    <div style={{ fontWeight:700, fontSize:14 }}>{provider.businessName}</div>
+                    <div style={{ fontSize:12, color:"#888", marginTop:1 }}>📍 {provider.location || "Unknown location"}</div>
+                  </div>
+                  <span style={{ fontSize:11, fontWeight:600, background:"#f0fdf4", color:"#15803d",
+                    border:"1px solid #bbf7d0", borderRadius:20, padding:"2px 10px" }}>
+                    Approved ✓
+                  </span>
+                </div>
+
+                {/* ── Service ── */}
+                <div style={{ ...sectionLabel }}>
+                  Service Details
+                  <span style={{ flex:1, height:1, background:"#fecaca" }} />
+                </div>
+
+                <div style={{ marginBottom:14 }}>
+                  <label style={fieldLabel}>Select Service</label>
+                  <select className="bk-sel"
+                    value={form.serviceId}
+                    onChange={(e) => setForm({ ...form, serviceId:e.target.value })}>
+                    {serviceOptions.map((s) => (
+                      <option key={s._id} value={s._id}>{s.title} — ₹{s.price}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Type toggle */}
+                <div style={{ marginBottom:14 }}>
+                  <label style={fieldLabel}>Booking Type</label>
+                  <div className="bk-type-toggle">
+                    <button className={`bk-type-btn ${form.type === "one-time" ? "active" : ""}`}
+                      type="button" onClick={() => setForm({ ...form, type:"one-time" })}>
+                      One-time
+                    </button>
+                    <button className={`bk-type-btn ${form.type === "contract" ? "active" : ""}`}
+                      type="button" onClick={() => setForm({ ...form, type:"contract" })}>
+                      Contract-based
+                    </button>
+                  </div>
+                </div>
+
+                {/* Contract extras */}
+                {form.type === "contract" && (
+                  <div style={{ background:"#fef2f2", border:"1px solid #fecaca",
+                    borderRadius:10, padding:14, marginBottom:14 }}>
+                    <div style={{ fontSize:11, fontWeight:700, color:"#b91c1c",
+                      letterSpacing:"0.07em", textTransform:"uppercase", marginBottom:10 }}>
+                      Contract Details
+                    </div>
+                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:10 }}>
+                      <div>
+                        <label style={fieldLabel}>Duration (months)</label>
+                        <input style={inputStyle} type="number" min={1} max={24}
+                          value={form.contractMonths}
+                          onChange={(e) => setForm({ ...form, contractMonths:+e.target.value })} />
+                      </div>
+                      <div>
+                        <label style={fieldLabel}>Days per week</label>
+                        <select className="bk-sel"
+                          value={form.contractDays}
+                          onChange={(e) => setForm({ ...form, contractDays:+e.target.value })}>
+                          <option value={1}>1 day/week</option>
+                          <option value={2}>2 days/week</option>
+                          <option value={3}>3 days/week</option>
+                          <option value={5}>5 days/week</option>
+                          <option value={7}>Daily</option>
+                        </select>
+                      </div>
+                    </div>
+                    <label style={fieldLabel}>Preferred days</label>
+                    <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                      {DAYS.map((d) => (
+                        <DayChip key={d} day={d}
+                          active={form.selectedDays.includes(d)}
+                          onToggle={() => toggleDay(d)} />
+                      ))}
+                    </div>
+                    <div style={{ marginTop:10, padding:"8px 12px", background:"#fff",
+                      borderRadius:8, border:"1px solid #fecaca", fontSize:12, color:"#555" }}>
+                      📋 Total visits: <strong>{totalVisits}</strong> &nbsp;|&nbsp;
+                      Total base: <strong>₹{baseTotal.toLocaleString("en-IN")}</strong>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Schedule ── */}
+                <div style={{ ...sectionLabel }}>
+                  Schedule
+                  <span style={{ flex:1, height:1, background:"#fecaca" }} />
+                </div>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
+                  <div>
+                    <label style={fieldLabel}>Date</label>
+                    <input style={inputStyle} type="date"
+                      min={new Date().toISOString().split("T")[0]}
+                      value={form.scheduledDate}
+                      onChange={(e) => setForm({ ...form, scheduledDate:e.target.value })} />
+                  </div>
+                  <div>
+                    <label style={fieldLabel}>Time</label>
+                    <TimePicker value={form.timeSlot}
+                      onChange={(v) => setForm({ ...form, timeSlot:v })} />
+                  </div>
+                </div>
+
+                {/* Notes */}
+                <div style={{ marginBottom:18 }}>
+                  <label style={fieldLabel}>Additional Notes (optional)</label>
+                  <textarea style={{ ...inputStyle, resize:"vertical", minHeight:70 }}
+                    placeholder="Any specific instructions..."
+                    value={form.notes}
+                    onChange={(e) => setForm({ ...form, notes:e.target.value })} />
+                </div>
+
+                <button className="bk-submit" disabled={submitting}
+                  onClick={() => setShowConfirmModal(true)}>
+                  Review & Confirm Booking →
+                </button>
+              </div>
+
+              {/* ── Right: Summary ── */}
+              <div style={{ ...cs, position:"sticky", top:20 }}>
+                <div style={{ ...sectionLabel }}>
+                  Payment Breakdown
+                  <span style={{ flex:1, height:1, background:"#fecaca" }} />
+                </div>
+
+                <SumRow label="Base Price"
+                  value={form.type === "contract"
+                    ? `₹${basePrice} × ${totalVisits} visits`
+                    : `₹${basePrice.toLocaleString("en-IN")}`} />
+                <SumRow label="Booking Charge" value={`₹${bookingCharge}`} />
+                <SumRow label="Service Fee" value={`₹${serviceFee}`} />
+                {appliedCoupon && (
+                  <SumRow label={`Coupon (${appliedCoupon.code})`}
+                    value={`-₹${discount.toLocaleString("en-IN")}`} highlight />
+                )}
+
+                <div style={{ display:"flex", justifyContent:"space-between", fontSize:18,
+                  fontWeight:800, padding:"12px 0 0", borderTop:"1px solid #fecaca", marginTop:6 }}>
+                  <span>Total</span>
+                  <span style={{ color:"#b91c1c" }}>₹{totalPayable.toLocaleString("en-IN")}</span>
+                </div>
+
+                {/* Coupons */}
+                {showCoupons && (
+                  <div style={{ marginTop:16 }}>
+                    <div style={{ background:"linear-gradient(135deg,#fff7f7,#fff)",
+                      border:"1px dashed #f87171", borderRadius:10, padding:"10px 13px",
+                      display:"flex", alignItems:"flex-start", gap:10, marginBottom:10 }}>
+                      <span style={{ fontSize:18 }}>🎟️</span>
+                      <div>
+                        <div style={{ fontSize:12, fontWeight:700, color:"#b91c1c", marginBottom:2 }}>
+                          You're eligible for coupons!
+                        </div>
+                        <div style={{ fontSize:11, color:"#888" }}>
+                          Your order qualifies for a discount.
+                        </div>
+                      </div>
+                    </div>
+                    {COUPONS.map((c) => (
+                      <div key={c.code}
+                        className={`bk-coupon-item ${appliedCoupon?.code === c.code ? "applied" : ""}`}
+                        onClick={() => setAppliedCoupon(appliedCoupon?.code === c.code ? null : c)}>
+                        <div>
+                          <div style={{ fontSize:12, fontWeight:700, fontFamily:"monospace",
+                            letterSpacing:"0.05em",
+                            color: appliedCoupon?.code === c.code ? "#15803d" : "#b91c1c" }}>
+                            {c.code}
+                          </div>
+                          <div style={{ fontSize:11, color:"#555", marginTop:1 }}>{c.desc}</div>
+                        </div>
+                        <div style={{ fontSize:12, fontWeight:700, color:"#15803d" }}>
+                          {c.pct ? `${c.pct}% OFF` : `₹${c.flat} OFF`}
+                        </div>
+                      </div>
+                    ))}
+                    {appliedCoupon && (
+                      <div style={{ display:"flex", justifyContent:"space-between",
+                        fontSize:12, fontWeight:600, color:"#15803d", marginTop:6,
+                        padding:"6px 10px", background:"#f0fdf4", borderRadius:8 }}>
+                        <span>Coupon applied ✓</span>
+                        <span>-₹{discount.toLocaleString("en-IN")} saved!</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <Link href={`/providers/${provider._id}`}
+                  style={{ display:"block", textAlign:"center", marginTop:16, padding:"9px",
+                    border:"1px solid #fecaca", borderRadius:10, fontSize:13, fontWeight:600,
+                    color:"#888", textDecoration:"none", background:"#fef2f2" }}>
+                  ← Back to Provider
+                </Link>
+              </div>
+            </div>
+          ) : !error ? (
+            <div style={{ background:"#fff", border:"1px solid #fecaca", borderRadius:16,
+              padding:40, textAlign:"center", fontSize:13, color:"#aaa" }}>
+              Loading provider details…
             </div>
           ) : null}
-        </section>
 
-        {/* form + summary */}
-        {provider ? (
-          <div className="grid gap-4 md:grid-cols-[1.5fr_1fr]">
-            {/* booking form */}
-            <form
-              onSubmit={createBooking}
-              className="sv-card p-4 grid gap-3 md:grid-cols-2"
-            >
-              <h2 className="md:col-span-2 text-lg font-semibold">
-                Selected Provider
-              </h2>
-              <p className="md:col-span-2 sv-subtitle">
-                {provider.businessName} &nbsp;·&nbsp;{" "}
-                {provider.location || "Unknown location"}
+          {/* Post-payment success */}
+          {paymentDone && createdBooking && (
+            <div style={{ background:"#fff", border:"1px solid #bbf7d0", borderLeft:"4px solid #15803d",
+              borderRadius:16, padding:24, marginTop:16 }}>
+              <p style={{ fontWeight:800, fontSize:"1.1rem", color:"#15803d", marginBottom:8 }}>
+                🎉 Booking Confirmed & Payment Received
               </p>
-
-              <select
-                className="sv-input"
-                value={form.serviceId}
-                onChange={(e) =>
-                  setForm({ ...form, serviceId: e.target.value })
-                }
-                required
-              >
-                {serviceOptions.map((s) => (
-                  <option key={s._id} value={s._id}>
-                    {s.title}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                className="sv-input"
-                value={form.type}
-                onChange={(e) => setForm({ ...form, type: e.target.value })}
-              >
-                <option value="one-time">One-time</option>
-                <option value="contract">Contract-based</option>
-              </select>
-
-              <input
-                className="sv-input"
-                type="date"
-                min={new Date().toISOString().split("T")[0]}
-                value={form.scheduledDate}
-                onChange={(e) =>
-                  setForm({ ...form, scheduledDate: e.target.value })
-                }
-                required
-              />
-              <input
-                className="sv-input"
-                placeholder="e.g. 10:00 AM"
-                value={form.timeSlot}
-                onChange={(e) => setForm({ ...form, timeSlot: e.target.value })}
-                required
-              />
-
-              <button className="sv-btn md:col-span-2" disabled={submitting}>
-                {submitting ? "Creating Booking…" : "Book Now"}
-              </button>
-            </form>
-
-            {/* price summary */}
-            <aside className="sv-card p-4 space-y-2">
-              <h3 className="font-semibold">Booking Summary</h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <Row
-                  label="Base Price"
-                  value={selectedService?.price || provider.basePrice || 0}
-                />
-                <Row
-                  label="Booking Charge"
-                  value={provider.bookingCharge || 0}
-                />
-                <Row
-                  label="Consultation Fee"
-                  value={provider.consultationFee || 0}
-                />
-                <Row label="Service Fee" value={provider.serviceFee || 0} />
+              <div style={{ display:"flex", gap:8, marginBottom:12, flexWrap:"wrap" }}>
+                <StatusBadge status={createdBooking.status} />
+                <span style={{ background:"#f0fdf4", color:"#15803d", border:"1px solid #bbf7d0",
+                  fontSize:11, fontWeight:700, padding:"2px 10px", borderRadius:20 }}>Paid</span>
               </div>
-              <hr
-                style={{ borderColor: "var(--sv-border)", margin: "8px 0" }}
-              />
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontWeight: 700,
-                  fontSize: "1.1rem",
-                }}
-              >
-                <span>Total</span>
-                <span style={{ color: "var(--sv-accent)" }}>
-                  ₹{totalAmount}
-                </span>
+              <p style={{ fontSize:13, color:"#888", marginBottom:16 }}>
+                Booking ID: <code>{createdBooking._id}</code>
+              </p>
+              <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+                <Link href="/user/bookings"
+                  style={{ padding:"9px 18px", background:"#7f1d1d", color:"#fff",
+                    borderRadius:10, textDecoration:"none", fontSize:13, fontWeight:700 }}>
+                  My Bookings
+                </Link>
+                <Link href={`/providers/${providerId}`}
+                  style={{ padding:"9px 18px", border:"1px solid #fecaca", background:"#fef2f2",
+                    color:"#b91c1c", borderRadius:10, textDecoration:"none", fontSize:13, fontWeight:600 }}>
+                  Provider Details
+                </Link>
               </div>
-              <Link
-                href={`/providers/${provider._id}`}
-                className="sv-btn-secondary"
-                style={{
-                  display: "inline-block",
-                  textDecoration: "none",
-                  marginTop: 8,
-                }}
-              >
-                ← Back to Provider
-              </Link>
-            </aside>
-          </div>
-        ) : !error ? (
-          <div
-            className="sv-card p-6"
-            style={{ textAlign: "center", color: "var(--sv-muted)" }}
-          >
-            Loading provider details…
-          </div>
-        ) : null}
-
-        {/* post-payment confirmation */}
-        {paymentDone && createdBooking ? (
-          <div
-            className="sv-card p-6"
-            style={{ borderLeft: "4px solid #10b981" }}
-          >
-            <p
-              style={{
-                fontWeight: 700,
-                fontSize: "1.1rem",
-                color: "#065f46",
-                marginBottom: 8,
-              }}
-            >
-              🎉 Booking Confirmed & Payment Received
-            </p>
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 8,
-                marginBottom: 12,
-              }}
-            >
-              <StatusBadge status={createdBooking.status} />
-              <PaymentBadge status="paid" />
             </div>
-            <p className="sv-subtitle" style={{ marginBottom: 16 }}>
-              Booking ID: <code>{createdBooking._id}</code>
-            </p>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <Link
-                href="/user/bookings"
-                className="sv-btn"
-                style={{ textDecoration: "none" }}
-              >
-                My Bookings
-              </Link>
-              <Link
-                href={`/providers/${providerId}`}
-                className="sv-btn-secondary"
-                style={{ textDecoration: "none" }}
-              >
-                Provider Details
-              </Link>
-            </div>
-          </div>
-        ) : null}
+          )}
+        </div>
+      </main>
 
-        {/* payment failed, booking created but unpaid */}
-        {!paymentDone && createdBooking && !showPayModal ? (
-          <div
-            className="sv-card p-5"
-            style={{ borderLeft: "4px solid #f59e0b" }}
-          >
-            <p style={{ fontWeight: 700, marginBottom: 6 }}>
-              Booking created successfully.
-            </p>
-            <p className="sv-subtitle" style={{ marginBottom: 12 }}>
-              Booking ID: <code>{createdBooking._id}</code> — payment is still
-              pending. You can pay now or from My Bookings in the Ongoing tab.
-            </p>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button className="sv-btn" onClick={() => setShowPayModal(true)}>
-                Pay Now
+      {/* ── Confirmation modal ── */}
+      {showConfirmModal && (
+        <div className="bk-overlay" onClick={(e) => { if (e.target.classList.contains("bk-overlay")) setShowConfirmModal(false); }}>
+          <div className="bk-modal">
+            <div className="bk-modal-head">
+              <div style={{ fontSize:16, fontWeight:800, color:"#111" }}>Confirm Your Booking</div>
+              <div style={{ fontSize:12, color:"#888", marginTop:2 }}>Review everything before you pay.</div>
+            </div>
+            <div style={{ padding:"16px 24px", maxHeight:"50vh", overflowY:"auto" }}>
+              {[
+                ["Provider", provider?.businessName],
+                ["Service", selectedService?.title || "—"],
+                ["Type", form.type === "contract" ? "Contract-based" : "One-time"],
+                ["Date", form.scheduledDate || "Not selected"],
+                ["Time", form.timeSlot || "Not selected"],
+                ...(form.type === "contract" ? [
+                  ["Duration", `${form.contractMonths} month${form.contractMonths > 1 ? "s" : ""}`],
+                  ["Frequency", `${form.contractDays} day${form.contractDays > 1 ? "s" : ""}/week`],
+                  ["Days", form.selectedDays.join(", ")],
+                  ["Total Visits", `${totalVisits} visits`],
+                ] : []),
+                ...(appliedCoupon ? [["Coupon", `${appliedCoupon.code} (-₹${discount})`]] : []),
+              ].map(([k, v]) => (
+                <div key={k} className="bk-modal-row">
+                  <span style={{ color:"#888", fontWeight:500, fontSize:13 }}>{k}</span>
+                  <span style={{ fontWeight:600, fontSize:13, textAlign:"right", maxWidth:"55%" }}>{v}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display:"flex", justifyContent:"space-between", fontSize:20,
+              fontWeight:800, padding:"14px 24px", borderTop:"2px solid #fecaca",
+              background:"#fef2f2" }}>
+              <span>Total Payable</span>
+              <span style={{ color:"#b91c1c" }}>₹{totalPayable.toLocaleString("en-IN")}</span>
+            </div>
+
+            {/* Advance payment option for contracts */}
+            {form.type === "contract" && (
+              <div style={{ padding:"0 24px 12px" }}>
+                <div style={{ fontSize:11, fontWeight:700, color:"#b91c1c",
+                  letterSpacing:"0.07em", textTransform:"uppercase", margin:"12px 0 8px" }}>
+                  Payment Option
+                </div>
+                <div className="bk-adv-toggle">
+                  <button className={`bk-adv-btn ${!form.advanceOnly ? "active" : ""}`}
+                    onClick={() => setForm({ ...form, advanceOnly:false })}>
+                    Full Payment<br />
+                    <span style={{ fontSize:10, opacity:0.8 }}>₹{totalPayable.toLocaleString("en-IN")}</span>
+                  </button>
+                  <button className={`bk-adv-btn ${form.advanceOnly ? "active" : ""}`}
+                    onClick={() => setForm({ ...form, advanceOnly:true })}>
+                    Advance (30%)<br />
+                    <span style={{ fontSize:10, opacity:0.8 }}>₹{advanceAmount.toLocaleString("en-IN")}</span>
+                  </button>
+                </div>
+                <div style={{ fontSize:11, color:"#888", textAlign:"center" }}>
+                  {form.advanceOnly ? "Remaining balance payable before first visit." : "Pay the full amount now."}
+                </div>
+              </div>
+            )}
+
+            <div style={{ padding:"12px 24px 20px", display:"flex", gap:8 }}>
+              <button onClick={() => setShowConfirmModal(false)}
+                style={{ flex:1, padding:10, borderRadius:10, border:"1px solid #e5e5e5",
+                  background:"#fff", color:"#555", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                Go Back
               </button>
-              <Link
-                href="/user/bookings?tab=ongoing"
-                className="sv-btn-secondary"
-                style={{ textDecoration: "none" }}
-              >
-                Pay From Dashboard
-              </Link>
+              <button onClick={createBooking} disabled={submitting}
+                style={{ flex:2, padding:10, borderRadius:10, border:"none", background:"#7f1d1d",
+                  color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"inherit",
+                  opacity: submitting ? 0.6 : 1 }}>
+                {submitting ? "Creating…" : `Pay ₹${(form.advanceOnly ? advanceAmount : totalPayable).toLocaleString("en-IN")} Now`}
+              </button>
             </div>
           </div>
-        ) : null}
-      </div>
+        </div>
+      )}
 
-      {/* mock payment modal */}
-      {showPayModal && createdBooking ? (
+      {/* Mock payment modal */}
+      {showPayModal && createdBooking && (
         <MockPaymentModal
           booking={createdBooking}
-          onSuccess={handlePaySuccess}
-          onFailure={handlePayFailure}
+          total={form.advanceOnly ? advanceAmount : totalPayable}
+          onSuccess={() => { setShowPayModal(false); setPaymentDone(true); }}
+          onFailure={(msg) => { setShowPayModal(false); setError(msg || "Payment failed. Retry from My Bookings."); }}
           onCancel={() => setShowPayModal(false)}
         />
-      ) : null}
-    </main>
-  );
-}
-
-function Row({ label, value }) {
-  return (
-    <div
-      style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}
-    >
-      <span className="sv-subtitle">{label}</span>
-      <span>₹{value}</span>
-    </div>
+      )}
+    </>
   );
 }
