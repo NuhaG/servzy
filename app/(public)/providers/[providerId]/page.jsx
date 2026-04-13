@@ -2,12 +2,18 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import AppNav from "@/components/AppNav";
 
-export default function ProviderDetailsPage() {
+function personImage(seed) {
+  return `https://i.pravatar.cc/1000?u=${encodeURIComponent(seed || "provider")}`;
+}
+
+function ProviderDetailsContent() {
   const { providerId } = useParams();
+  const searchParams = useSearchParams();
+  const serviceIdFromQuery = searchParams.get("serviceId");
   const [provider, setProvider] = useState(null);
   const [currentUserId, setCurrentUserId] = useState("");
   const [error, setError] = useState("");
@@ -43,8 +49,18 @@ export default function ProviderDetailsPage() {
   }, [providerId]);
 
   const selectedService = useMemo(
-    () => (provider?.services || [])[0],
-    [provider]
+    () =>
+      (provider?.services || []).find((service) => service._id === serviceIdFromQuery) ||
+      (provider?.services || [])[0],
+    [provider, serviceIdFromQuery]
+  );
+  const totalPrice = useMemo(
+    () =>
+      Number(selectedService?.price || provider?.basePrice || 0) +
+      Number(provider?.bookingCharge || 0) +
+      Number(provider?.consultationFee || 0) +
+      Number(provider?.serviceFee || 0),
+    [selectedService, provider]
   );
 
   return (
@@ -62,8 +78,8 @@ export default function ProviderDetailsPage() {
           <>
             <div className="grid gap-4 md:grid-cols-3">
               <div>
-                <Image
-                  src={provider.services?.[0]?.images?.[0] || "https://picsum.photos/seed/provider-detail/1000/700"}
+                <img
+                  src={personImage(selectedService?._id || provider._id)}
                   alt={provider.businessName}
                   width={1000}
                   height={700}
@@ -73,6 +89,10 @@ export default function ProviderDetailsPage() {
               <div className="space-y-2 md:col-span-2">
                 <h1 className="text-2xl font-bold">{provider.businessName}</h1>
                 <p className="text-sm text-slate-600">{provider.location}</p>
+                <p className="text-sm">Selected Service: {selectedService?.title || "Service"}</p>
+                <p style={{ color: "#c94b2c", fontWeight: 800, fontSize: 24 }}>
+                  Rs {totalPrice}
+                </p>
                 <p className="text-sm">Rating: {provider.avgRating || 0}</p>
                 <p className="text-sm">Reliability: {provider.reliabilityScore || "-"}</p>
                 <p className="text-sm">Services: {(provider.services || []).map((item) => item.title).join(", ")}</p>
@@ -86,19 +106,19 @@ export default function ProviderDetailsPage() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-[1.5fr_1fr]">
-            <section className="sv-card p-4 space-y-3">
-              <h2 className="text-lg font-semibold">Ready To Book?</h2>
-              <p className="sv-subtitle">Continue to booking to choose service, date, and time.</p>
-              {!currentUserId ? (
-                <Link href={`/sign-in?redirect_url=${encodeURIComponent(`/book?providerId=${providerId}`)}`} className="sv-btn" style={{ display: "inline-block", textDecoration: "none" }}>
-                  Sign In To Book
-                </Link>
-              ) : (
-                <Link href={`/book?providerId=${providerId}`} className="sv-btn" style={{ display: "inline-block", textDecoration: "none" }}>
-                  Continue To Booking
-                </Link>
-              )}
-            </section>
+              <section className="sv-card p-4 space-y-3">
+                <h2 className="text-lg font-semibold">Ready To Book?</h2>
+                <p className="sv-subtitle">Continue to booking to choose service, date, and time.</p>
+                {!currentUserId ? (
+                  <Link href={`/sign-in?redirect_url=${encodeURIComponent(`/book?providerId=${providerId}`)}`} className="sv-btn" style={{ display: "inline-block", textDecoration: "none" }}>
+                    Sign In To Book
+                  </Link>
+                ) : (
+                  <Link href={`/book?providerId=${providerId}&serviceId=${encodeURIComponent(selectedService?._id || "")}`} className="sv-btn" style={{ display: "inline-block", textDecoration: "none" }}>
+                    Continue To Booking
+                  </Link>
+                )}
+              </section>
               <aside className="sv-card p-4 space-y-3">
                 <h3 className="font-semibold">Pricing Breakdown</h3>
                 <p className="sv-subtitle">Base Price: Rs {selectedService?.price || provider.basePrice || 0}</p>
@@ -107,7 +127,7 @@ export default function ProviderDetailsPage() {
                 <p className="sv-subtitle">Service Fee: Rs {provider.serviceFee || 0}</p>
                 <hr style={{ borderColor: "var(--sv-border)" }} />
                 <p style={{ fontWeight: 700 }}>
-                  Total: Rs {(Number(selectedService?.price || provider.basePrice || 0) + Number(provider.bookingCharge || 0) + Number(provider.consultationFee || 0) + Number(provider.serviceFee || 0))}
+                  Total: Rs {totalPrice}
                 </p>
                 <p className="sv-subtitle">Verified provider with live reliability scoring.</p>
               </aside>
@@ -116,5 +136,24 @@ export default function ProviderDetailsPage() {
         ) : null}
       </div>
     </main>
+  );
+}
+
+export default function ProviderDetailsPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="sv-page">
+          <AppNav />
+          <div className="sv-shell">
+            <div className="sv-card p-6">
+              <p className="sv-subtitle">Loading provider details...</p>
+            </div>
+          </div>
+        </main>
+      }
+    >
+      <ProviderDetailsContent />
+    </Suspense>
   );
 }

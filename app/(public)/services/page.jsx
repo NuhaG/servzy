@@ -18,6 +18,7 @@ export default function PublicServicesPage() {
   const [services, setServices] = useState([]);
   const [search, setSearch] = useState("");
   const [view, setView] = useState("list");
+  const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(true);
   const [category, setCategory] = useState("all");
   const [maxPrice, setMaxPrice] = useState(3000);
@@ -82,6 +83,21 @@ export default function PublicServicesPage() {
 
     return output;
   }, [services, search, category, maxPrice, minRating, reliability, verifiedOnly, sortBy]);
+
+  const pageSize = 6;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginatedFiltered = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, category, maxPrice, minRating, reliability, verifiedOnly, sortBy, view]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
 
   const mapProviders = useMemo(() => {
     const deduped = new Map();
@@ -226,10 +242,15 @@ export default function PublicServicesPage() {
 
             {!loading && !error && view === "list" ? (
               <div className="space-y-3">
-                {filtered.map((service) => {
+                {paginatedFiltered.map((service) => {
                   const provider = service.providerId || {};
-                  const img = personImage(provider.businessName || service._id);
+                  const img = personImage(service._id);
                   const reliabilityScore = Number(provider.reliabilityScore || 0);
+                  const totalPrice =
+                    Number(service.price || provider.basePrice || 0) +
+                    Number(provider.bookingCharge || 0) +
+                    Number(provider.consultationFee || 0) +
+                    Number(provider.serviceFee || 0);
                   return (
                     <div key={service._id} className="sv-card p-3">
                       <div style={{ display: "grid", gridTemplateColumns: "110px 1fr auto", gap: 12, alignItems: "center" }}>
@@ -244,21 +265,51 @@ export default function PublicServicesPage() {
                           </div>
                         </div>
                         <div style={{ textAlign: "right" }}>
-                          <p style={{ color: "#c94b2c", fontWeight: 800, fontSize: 22 }}>Rs {Number(service.price || 0)}</p>
-                          <p className="sv-subtitle">starting price</p>
+                          <p style={{ color: "#c94b2c", fontWeight: 800, fontSize: 22 }}>Rs {totalPrice}</p>
+                          <p className="sv-subtitle">total estimate</p>
                         </div>
                       </div>
                       <div style={{ marginTop: 12 }} className="svc-line">
                         <div className="svc-fill" style={{ width: `${Math.min(reliabilityScore, 100)}%` }} />
                       </div>
                       <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        <Link href={`/providers/${provider._id}`} className="sv-btn" style={{ textDecoration: "none" }}>View profile</Link>
+                        <Link href={`/providers/${provider._id}?serviceId=${encodeURIComponent(service._id)}`} className="sv-btn" style={{ textDecoration: "none" }}>View profile</Link>
                         <button className="sv-btn-secondary">Show on map</button>
-                        <button className="sv-btn-secondary">More details</button>
+                        <Link href={`/providers/${provider._id}?serviceId=${encodeURIComponent(service._id)}`} className="sv-btn-secondary" style={{ textDecoration: "none" }}>More details</Link>
                       </div>
                     </div>
                   );
                 })}
+                {filtered.length > pageSize ? (
+                  <div
+                    className="sv-card p-3"
+                    style={{
+                      display: "flex",
+                      gap: 8,
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <button
+                      className="sv-btn-secondary"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </button>
+                    <p className="sv-subtitle" style={{ margin: 0 }}>
+                      Page {currentPage} of {totalPages}
+                    </p>
+                    <button
+                      className="sv-btn-secondary"
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </button>
+                  </div>
+                ) : null}
                 {!filtered.length ? <div className="sv-card p-4">No services match your filters.</div> : null}
               </div>
             ) : null}

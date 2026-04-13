@@ -4,13 +4,26 @@ import { connectDB } from "@/lib/db";
 import { auth } from "@clerk/nextjs/server";
 import User from "@/models/User";
 
-const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+function createRazorpayClient() {
+    const keyId = process.env.RAZORPAY_KEY_ID;
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    if (!keyId || !keySecret) return null;
+    return new Razorpay({
+        key_id: keyId,
+        key_secret: keySecret,
+    });
+}
 
 export async function POST(request) {
     try {
+        const razorpay = createRazorpayClient();
+        if (!razorpay) {
+            return NextResponse.json(
+                { error: "Payment gateway is not configured" },
+                { status: 500 }
+            );
+        }
+
         await connectDB();
         const { userId: clerkId } = await auth();
 
