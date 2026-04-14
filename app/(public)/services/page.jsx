@@ -10,8 +10,21 @@ function formatPrice(price, unit) {
   return `₹${Number(price || 0).toLocaleString("en-IN")} ${unitMap[unit] || ""}`.trim();
 }
 
-function personImage(seed) {
-  return `https://i.pravatar.cc/320?u=${encodeURIComponent(seed || "provider")}`;
+function getServiceImage(service, provider) {
+  // Use first service image if available
+  if (service?.serviceImages?.[0]) {
+    return service.serviceImages[0];
+  }
+  // Use provider avatar if available
+  if (provider?.avatarUrl) {
+    return provider.avatarUrl;
+  }
+  // Check for 'photo' field (from seed data)
+  if (provider?.photo) {
+    return provider.photo;
+  }
+  // Fall back to placeholder
+  return `https://i.pravatar.cc/320?u=${encodeURIComponent(service?._id || "provider")}`;
 }
 
 function VerifiedBadge() {
@@ -409,7 +422,7 @@ export default function PublicServicesPage() {
                       <div key={service._id} className="sp-card">
                         <div className="sp-card-inner">
                           <img
-                            src={personImage(service._id)}
+                            src={getServiceImage(service, provider)}
                             alt={service.title}
                             className="sp-card-img"
                           />

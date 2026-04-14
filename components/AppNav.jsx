@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { UserButton, useAuth } from "@clerk/nextjs";
+import { UserButton, useAuth, useClerk } from "@clerk/nextjs";
 import { useEffect, useMemo, useState } from "react";
 
 export default function AppNav() {
   const { isSignedIn } = useAuth();
+  const { signOut } = useClerk();
   const [role, setRole] = useState("user");
+  const [providerImage, setProviderImage] = useState(null);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   useEffect(() => {
     async function loadRole() {
@@ -15,6 +18,15 @@ export default function AppNav() {
         if (!response.ok) return;
         const data = await response.json();
         setRole(data.user?.role || "user");
+        
+        // Load provider image if provider
+        if (data.user?.role === "provider" && data.provider?._id) {
+          const providerRes = await fetch(`/api/providers/${data.provider._id}`);
+          if (providerRes.ok) {
+            const providerData = await providerRes.json();
+            setProviderImage(providerData?.avatarUrl || providerData?.photo || null);
+          }
+        }
       } catch (_) {
         // keep default role
       }
@@ -98,7 +110,16 @@ export default function AppNav() {
               </Link>
             ))}
             <div style={{ marginLeft: 6 }}>
-              <UserButton afterSignOutUrl="/" />
+              {role === "provider" && providerImage ? (
+                <UserButton>
+                  <UserButton.MenuItems>
+                    <UserButton.Action label="manageAccount" />
+                    <UserButton.Action label="signOut" />
+                  </UserButton.MenuItems>
+                </UserButton>
+              ) : (
+                <UserButton afterSignOutUrl="/" />
+              )}
             </div>
             </>
           ) : null}

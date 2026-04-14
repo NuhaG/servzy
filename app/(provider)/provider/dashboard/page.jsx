@@ -54,7 +54,7 @@ export default function ProviderDashboardPage() {
         }
 
         const providerResponse = await fetch(
-          `/api/providers/${meData.provider._id}`
+          `/api/providers/${meData.provider._id}`,
         );
         const providerData = await providerResponse.json();
         if (!providerResponse.ok)
@@ -62,7 +62,7 @@ export default function ProviderDashboardPage() {
         setProvider(providerData);
 
         const bookingsResponse = await fetch(
-          `/api/bookings?providerId=${encodeURIComponent(meData.provider._id)}`
+          `/api/bookings?providerId=${encodeURIComponent(meData.provider._id)}`,
         );
         const bookingsData = await bookingsResponse.json();
         if (!bookingsResponse.ok)
@@ -94,11 +94,36 @@ export default function ProviderDashboardPage() {
   const sc = statusStyle(provider?.status);
 
   const navLinks = [
-    { href: "/provider/profile", label: "Edit Profile", desc: "Update your business info & photo", icon: "✏️" },
-    { href: "/provider/services", label: "My Services", desc: "View and manage your service listings", icon: "🛠️" },
-    { href: "/provider/services/new", label: "Create Service", desc: "Add a new service to your profile", icon: "➕" },
-    { href: "/provider/bookings", label: "Booking Requests", desc: "Review and respond to bookings", icon: "📅" },
-    { href: "/provider/complaints", label: "Complaints", desc: "View complaints raised against you", icon: "⚠️" },
+    {
+      href: "/provider/profile",
+      label: "Edit Profile",
+      desc: "Update your business info & photo",
+      icon: "✏️",
+    },
+    {
+      href: "/provider/services",
+      label: "My Services",
+      desc: "View and manage your service listings",
+      icon: "🛠️",
+    },
+    {
+      href: "/provider/services/new",
+      label: "Create Service",
+      desc: "Add a new service to your profile",
+      icon: "➕",
+    },
+    {
+      href: "/provider/bookings",
+      label: "Booking Requests",
+      desc: "Review and respond to bookings",
+      icon: "📅",
+    },
+    {
+      href: "/provider/complaints",
+      label: "Complaints",
+      desc: "View complaints raised against you",
+      icon: "⚠️",
+    },
   ];
 
   return (
@@ -297,7 +322,6 @@ export default function ProviderDashboardPage() {
       <main className="pd-page">
         <AppNav />
         <div className="pd-shell">
-
           {/* Header */}
           <div className="pd-header">
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -305,10 +329,16 @@ export default function ProviderDashboardPage() {
               <h1 className="pd-header-title">Dashboard</h1>
               {provider ? (
                 <div className="pd-header-meta">
-                  <span className="pd-business-name">{provider.businessName}</span>
+                  <span className="pd-business-name">
+                    {provider.businessName}
+                  </span>
                   <span
                     className="pd-status-pill"
-                    style={{ background: sc.bg, color: sc.color, borderColor: sc.border }}
+                    style={{
+                      background: sc.bg,
+                      color: sc.color,
+                      borderColor: sc.border,
+                    }}
                   >
                     {provider.status}
                   </span>
@@ -318,9 +348,9 @@ export default function ProviderDashboardPage() {
               ) : null}
               {error && <p className="pd-error">{error}</p>}
             </div>
-            {provider?.photo ? (
+            {provider?.photo || provider?.avatarUrl ? (
               <img
-                src={provider.photo}
+                src={provider.photo || provider.avatarUrl}
                 alt={provider.businessName}
                 className="pd-header-photo"
               />
@@ -340,7 +370,9 @@ export default function ProviderDashboardPage() {
               <div className="pd-stat-label">Total Bookings</div>
             </div>
             <div className="pd-stat">
-              <div className={`pd-stat-num ${stats.pending > 0 ? "pending" : ""}`}>
+              <div
+                className={`pd-stat-num ${stats.pending > 0 ? "pending" : ""}`}
+              >
                 {stats.pending}
               </div>
               <div className="pd-stat-label">Pending Requests</div>
@@ -360,7 +392,6 @@ export default function ProviderDashboardPage() {
               </Link>
             ))}
           </div>
-
         </div>
       </main>
     </>

@@ -5,8 +5,17 @@ import { useParams, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import AppNav from "@/components/AppNav";
 
-function personImage(seed) {
-  return `https://i.pravatar.cc/1000?u=${encodeURIComponent(seed || "provider")}`;
+function getProviderImage(provider, service) {
+  // Use provider avatar if available
+  if (provider?.avatarUrl) {
+    return provider.avatarUrl;
+  }
+  // Check for 'photo' field (from seed data)
+  if (provider?.photo) {
+    return provider.photo;
+  }
+  // Fall back to placeholder
+  return `https://i.pravatar.cc/1000?u=${encodeURIComponent(provider?._id || "provider")}`;
 }
 
 function StarDisplay({ rating, size = 14 }) {
@@ -167,7 +176,7 @@ function ProviderDetailsContent() {
               {/* ── Hero: photo left | details right ── */}
               <div className="pdp-hero">
                 <img
-                  src={personImage(selectedService?._id || provider._id)}
+                  src={getProviderImage(provider)}
                   alt={provider.businessName}
                   className="pdp-hero-img"
                 />
