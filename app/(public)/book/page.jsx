@@ -2,22 +2,24 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef, Suspense } from "react";
 import AppNav from "@/components/AppNav";
 
 // ─── Status / Payment badges ──────────────────────────────────────────────────
 function StatusBadge({ status }) {
   const map = {
-    pending:   { bg:"#fefce8", color:"#854d0e", border:"#fde68a",   label:"Pending" },
-    accepted:  { bg:"#f0fdf4", color:"#15803d", border:"#bbf7d0",   label:"Accepted" },
-    rejected:  { bg:"#fff1f2", color:"#b91c1c", border:"#fecaca",   label:"Rejected" },
-    completed: { bg:"#f0fdf4", color:"#166534", border:"#bbf7d0",   label:"Completed" },
-    cancelled: { bg:"#fafafa", color:"#4b5563", border:"#e5e5e5",   label:"Cancelled" },
+    pending: { bg: "#fefce8", color: "#854d0e", border: "#fde68a", label: "Pending" },
+    accepted: { bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0", label: "Accepted" },
+    rejected: { bg: "#fff1f2", color: "#b91c1c", border: "#fecaca", label: "Rejected" },
+    completed: { bg: "#f0fdf4", color: "#166534", border: "#bbf7d0", label: "Completed" },
+    cancelled: { bg: "#fafafa", color: "#4b5563", border: "#e5e5e5", label: "Cancelled" },
   };
   const s = map[status] || map.pending;
   return (
-    <span style={{ background:s.bg, color:s.color, border:`1px solid ${s.border}`,
-      fontSize:11, fontWeight:700, padding:"2px 10px", borderRadius:20 }}>
+    <span style={{
+      background: s.bg, color: s.color, border: `1px solid ${s.border}`,
+      fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 20
+    }}>
       {s.label}
     </span>
   );
@@ -41,59 +43,67 @@ function TimePicker({ value, onChange }) {
   function adjM(d) { setM((prev) => (prev + d + 60) % 60); }
 
   function confirm() {
-    const txt = `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")} ${ampm}`;
+    const txt = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`;
     onChange(txt);
     setOpen(false);
   }
 
   return (
-    <div ref={ref} style={{ position:"relative" }}>
+    <div ref={ref} style={{ position: "relative" }}>
       <div
         onClick={() => setOpen((o) => !o)}
-        style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
-          padding:"10px 13px", border:"1px solid #fecaca", borderRadius:10,
-          background:"#fef2f2", cursor:"pointer", fontSize:13,
-          color: value ? "#111" : "#aaa" }}
+        style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "10px 13px", border: "1px solid #fecaca", borderRadius: 10,
+          background: "#fef2f2", cursor: "pointer", fontSize: 13,
+          color: value ? "#111" : "#aaa"
+        }}
       >
         <span>{value || "Select time"}</span>
-        <span style={{ color:"#b91c1c" }}>🕐</span>
+        <span style={{ color: "#b91c1c" }}>🕐</span>
       </div>
 
       {open && (
-        <div style={{ position:"absolute", top:"calc(100% + 6px)", left:0, zIndex:30,
-          background:"#fff", border:"1px solid #fecaca", borderRadius:12,
-          padding:16, boxShadow:"0 8px 32px rgba(185,28,28,0.12)", width:240 }}>
+        <div style={{
+          position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 30,
+          background: "#fff", border: "1px solid #fecaca", borderRadius: 12,
+          padding: 16, boxShadow: "0 8px 32px rgba(185,28,28,0.12)", width: 240
+        }}>
           {/* Wheels */}
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:6, marginBottom:12 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 12 }}>
             {/* Hour */}
-            <div style={{ display:"flex", flexDirection:"column", alignItems:"center" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
               <button onClick={() => adjH(1)} style={wheelBtn}>▲</button>
-              <div style={wheelVal}>{String(h).padStart(2,"0")}</div>
+              <div style={wheelVal}>{String(h).padStart(2, "0")}</div>
               <button onClick={() => adjH(-1)} style={wheelBtn}>▼</button>
             </div>
-            <span style={{ fontSize:24, fontWeight:700, color:"#b91c1c", marginBottom:4 }}>:</span>
+            <span style={{ fontSize: 24, fontWeight: 700, color: "#b91c1c", marginBottom: 4 }}>:</span>
             {/* Minute */}
-            <div style={{ display:"flex", flexDirection:"column", alignItems:"center" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
               <button onClick={() => adjM(15)} style={wheelBtn}>▲</button>
-              <div style={wheelVal}>{String(m).padStart(2,"0")}</div>
+              <div style={wheelVal}>{String(m).padStart(2, "0")}</div>
               <button onClick={() => adjM(-15)} style={wheelBtn}>▼</button>
             </div>
             {/* AM/PM */}
-            <div style={{ display:"flex", flexDirection:"column", gap:2, marginLeft:6 }}>
-              {["AM","PM"].map((p) => (
+            <div style={{ display: "flex", flexDirection: "column", gap: 2, marginLeft: 6 }}>
+              {["AM", "PM"].map((p) => (
                 <button key={p} onClick={() => setAmpm(p)}
-                  style={{ padding:"6px 10px", border:"1px solid #fecaca", borderRadius:6,
-                    fontSize:11, fontWeight:700, cursor:"pointer",
+                  style={{
+                    padding: "6px 10px", border: "1px solid #fecaca", borderRadius: 6,
+                    fontSize: 11, fontWeight: 700, cursor: "pointer",
                     background: ampm === p ? "#7f1d1d" : "#fef2f2",
-                    color: ampm === p ? "#fff" : "#888" }}>
+                    color: ampm === p ? "#fff" : "#888"
+                  }}>
                   {p}
                 </button>
               ))}
             </div>
           </div>
           <button onClick={confirm}
-            style={{ width:"100%", padding:8, background:"#7f1d1d", color:"#fff",
-              border:"none", borderRadius:8, fontSize:13, fontWeight:700, cursor:"pointer" }}>
+            style={{
+              width: "100%", padding: 8, background: "#7f1d1d", color: "#fff",
+              border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer"
+            }}>
             Confirm Time
           </button>
         </div>
@@ -101,37 +111,39 @@ function TimePicker({ value, onChange }) {
     </div>
   );
 }
-const wheelBtn = { background:"none", border:"none", cursor:"pointer", color:"#b91c1c", fontSize:16, padding:"2px 8px", lineHeight:1 };
-const wheelVal = { fontSize:28, fontWeight:800, color:"#111", minWidth:44, textAlign:"center", letterSpacing:"-0.03em" };
+const wheelBtn = { background: "none", border: "none", cursor: "pointer", color: "#b91c1c", fontSize: 16, padding: "2px 8px", lineHeight: 1 };
+const wheelVal = { fontSize: 28, fontWeight: 800, color: "#111", minWidth: 44, textAlign: "center", letterSpacing: "-0.03em" };
 
 // ─── Coupon system ────────────────────────────────────────────────────────────
 const COUPONS = [
-  { code:"CLEAN20", desc:"20% off on all services",  pct:20 },
-  { code:"FIRST15", desc:"15% off for first booking", pct:15 },
-  { code:"SAVE200", desc:"Flat ₹200 off",             flat:200 },
+  { code: "CLEAN20", desc: "20% off on all services", pct: 20 },
+  { code: "FIRST15", desc: "15% off for first booking", pct: 15 },
+  { code: "SAVE200", desc: "Flat ₹200 off", flat: 200 },
 ];
 
 // ─── Day chip ────────────────────────────────────────────────────────────────
 function DayChip({ day, active, onToggle }) {
   return (
     <span onClick={onToggle}
-      style={{ padding:"5px 12px", borderRadius:20, fontSize:12, fontWeight:600,
-        cursor:"pointer", border:"1px solid", transition:"all 0.15s",
+      style={{
+        padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600,
+        cursor: "pointer", border: "1px solid", transition: "all 0.15s",
         background: active ? "#7f1d1d" : "#fff",
         color: active ? "#fff" : "#888",
-        borderColor: active ? "#7f1d1d" : "#fecaca" }}>
+        borderColor: active ? "#7f1d1d" : "#fecaca"
+      }}>
       {day}
     </span>
   );
 }
-const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 // ─── Summary row ─────────────────────────────────────────────────────────────
 function SumRow({ label, value, highlight }) {
   return (
-    <div style={{ display:"flex", justifyContent:"space-between", fontSize:13, padding:"5px 0" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "5px 0" }}>
       <span style={{ color: highlight ? "#15803d" : "#888" }}>{label}</span>
-      <span style={{ fontWeight:600, color: highlight ? "#15803d" : "#111" }}>{value}</span>
+      <span style={{ fontWeight: 600, color: highlight ? "#15803d" : "#111" }}>{value}</span>
     </div>
   );
 }
@@ -145,9 +157,9 @@ function MockPaymentModal({ booking, total, onSuccess, onFailure, onCancel }) {
     await new Promise((r) => setTimeout(r, 1800));
     try {
       const res = await fetch("/api/payment/mock", {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ bookingId:booking._id, simulateFailure }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId: booking._id, simulateFailure }),
       });
       const data = await res.json();
       if (data.success) { setStep("done"); setTimeout(() => onSuccess(data), 1200); }
@@ -158,57 +170,73 @@ function MockPaymentModal({ booking, total, onSuccess, onFailure, onCancel }) {
   }
 
   return (
-    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.45)",
-      backdropFilter:"blur(4px)", display:"flex", alignItems:"center",
-      justifyContent:"center", zIndex:50, padding:20 }}>
-      <div style={{ background:"#fff", borderRadius:16, border:"1px solid #fecaca",
-        width:"100%", maxWidth:400, padding:32, textAlign:"center",
-        boxShadow:"0 20px 60px rgba(0,0,0,0.15)" }}>
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
+      backdropFilter: "blur(4px)", display: "flex", alignItems: "center",
+      justifyContent: "center", zIndex: 50, padding: 20
+    }}>
+      <div style={{
+        background: "#fff", borderRadius: 16, border: "1px solid #fecaca",
+        width: "100%", maxWidth: 400, padding: 32, textAlign: "center",
+        boxShadow: "0 20px 60px rgba(0,0,0,0.15)"
+      }}>
 
         {step === "confirm" && (
           <>
-            <div style={{ display:"inline-flex", alignItems:"center", gap:6,
-              background:"rgba(185,28,28,0.08)", borderRadius:999, padding:"4px 14px",
-              marginBottom:20, fontSize:11, fontWeight:700, color:"#b91c1c",
-              textTransform:"uppercase", letterSpacing:"0.06em" }}>
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              background: "rgba(185,28,28,0.08)", borderRadius: 999, padding: "4px 14px",
+              marginBottom: 20, fontSize: 11, fontWeight: 700, color: "#b91c1c",
+              textTransform: "uppercase", letterSpacing: "0.06em"
+            }}>
               🧪 Sandbox / Test Mode
             </div>
-            <p style={{ fontSize:"1.3rem", fontWeight:800, marginBottom:4 }}>Complete Payment</p>
-            <p style={{ fontSize:13, color:"#888", marginBottom:20 }}>
+            <p style={{ fontSize: "1.3rem", fontWeight: 800, marginBottom: 4 }}>Complete Payment</p>
+            <p style={{ fontSize: 13, color: "#888", marginBottom: 20 }}>
               Simulated payment — no real money charged.
             </p>
-            <div style={{ background:"#fef2f2", borderRadius:12, padding:"14px 18px", marginBottom:20 }}>
-              <p style={{ fontSize:12, color:"#888", marginBottom:2 }}>Total Amount</p>
-              <p style={{ fontSize:"2rem", fontWeight:800, color:"#b91c1c" }}>₹{total}</p>
-              <p style={{ fontSize:12, color:"#888", marginTop:2 }}>
+            <div style={{ background: "#fef2f2", borderRadius: 12, padding: "14px 18px", marginBottom: 20 }}>
+              <p style={{ fontSize: 12, color: "#888", marginBottom: 2 }}>Total Amount</p>
+              <p style={{ fontSize: "2rem", fontWeight: 800, color: "#b91c1c" }}>₹{total}</p>
+              <p style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
                 Booking #{String(booking._id).slice(-6).toUpperCase()}
               </p>
             </div>
-            <div style={{ border:"1px solid #fecaca", borderRadius:10, padding:"10px 14px",
-              marginBottom:20, display:"flex", alignItems:"center", gap:12, textAlign:"left" }}>
-              <div style={{ width:40, height:28, borderRadius:4,
-                background:"linear-gradient(135deg,#b91c1c,#dc143c)", flexShrink:0 }} />
+            <div style={{
+              border: "1px solid #fecaca", borderRadius: 10, padding: "10px 14px",
+              marginBottom: 20, display: "flex", alignItems: "center", gap: 12, textAlign: "left"
+            }}>
+              <div style={{
+                width: 40, height: 28, borderRadius: 4,
+                background: "linear-gradient(135deg,#b91c1c,#dc143c)", flexShrink: 0
+              }} />
               <div>
-                <p style={{ fontWeight:600, fontSize:13 }}>•••• •••• •••• 4242</p>
-                <p style={{ fontSize:11, color:"#888" }}>Test Card — expires 12/99</p>
+                <p style={{ fontWeight: 600, fontSize: 13 }}>•••• •••• •••• 4242</p>
+                <p style={{ fontSize: 11, color: "#888" }}>Test Card — expires 12/99</p>
               </div>
             </div>
             <button onClick={() => handlePay(false)}
-              style={{ width:"100%", padding:"11px", background:"#7f1d1d", color:"#fff",
-                border:"none", borderRadius:10, fontSize:14, fontWeight:700,
-                cursor:"pointer", marginBottom:8 }}>
+              style={{
+                width: "100%", padding: "11px", background: "#7f1d1d", color: "#fff",
+                border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700,
+                cursor: "pointer", marginBottom: 8
+              }}>
               Pay ₹{total}
             </button>
             <button onClick={() => handlePay(true)}
-              style={{ width:"100%", padding:"10px", border:"1px solid #fecaca",
-                borderRadius:10, background:"#fef2f2", color:"#b91c1c",
-                fontWeight:600, cursor:"pointer", fontSize:13, marginBottom:8 }}>
+              style={{
+                width: "100%", padding: "10px", border: "1px solid #fecaca",
+                borderRadius: 10, background: "#fef2f2", color: "#b91c1c",
+                fontWeight: 600, cursor: "pointer", fontSize: 13, marginBottom: 8
+              }}>
               Simulate Failure
             </button>
             <button onClick={onCancel}
-              style={{ width:"100%", padding:"10px", border:"1px solid #e5e5e5",
-                borderRadius:10, background:"#fff", color:"#555",
-                fontWeight:600, cursor:"pointer", fontSize:13 }}>
+              style={{
+                width: "100%", padding: "10px", border: "1px solid #e5e5e5",
+                borderRadius: 10, background: "#fff", color: "#555",
+                fontWeight: 600, cursor: "pointer", fontSize: 13
+              }}>
               Cancel
             </button>
           </>
@@ -216,31 +244,37 @@ function MockPaymentModal({ booking, total, onSuccess, onFailure, onCancel }) {
 
         {step === "processing" && (
           <>
-            <div style={{ width:52, height:52, borderRadius:"50%",
-              border:"4px solid #fecaca", borderTop:"4px solid #b91c1c",
-              animation:"spin 0.8s linear infinite", margin:"0 auto 20px" }} />
-            <p style={{ fontWeight:700, fontSize:"1.1rem", marginBottom:6 }}>Processing…</p>
-            <p style={{ fontSize:13, color:"#888" }}>Please wait, do not close this window.</p>
+            <div style={{
+              width: 52, height: 52, borderRadius: "50%",
+              border: "4px solid #fecaca", borderTop: "4px solid #b91c1c",
+              animation: "spin 0.8s linear infinite", margin: "0 auto 20px"
+            }} />
+            <p style={{ fontWeight: 700, fontSize: "1.1rem", marginBottom: 6 }}>Processing…</p>
+            <p style={{ fontSize: 13, color: "#888" }}>Please wait, do not close this window.</p>
           </>
         )}
 
         {step === "done" && (
           <>
-            <div style={{ width:60, height:60, borderRadius:"50%", background:"#f0fdf4",
-              display:"flex", alignItems:"center", justifyContent:"center",
-              margin:"0 auto 16px", fontSize:30 }}>✅</div>
-            <p style={{ fontWeight:800, fontSize:"1.2rem", color:"#15803d" }}>Payment Successful!</p>
-            <p style={{ fontSize:13, color:"#888", marginTop:6 }}>Redirecting you now…</p>
+            <div style={{
+              width: 60, height: 60, borderRadius: "50%", background: "#f0fdf4",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              margin: "0 auto 16px", fontSize: 30
+            }}>✅</div>
+            <p style={{ fontWeight: 800, fontSize: "1.2rem", color: "#15803d" }}>Payment Successful!</p>
+            <p style={{ fontSize: 13, color: "#888", marginTop: 6 }}>Redirecting you now…</p>
           </>
         )}
 
         {step === "failed" && (
           <>
-            <div style={{ width:60, height:60, borderRadius:"50%", background:"#fff1f2",
-              display:"flex", alignItems:"center", justifyContent:"center",
-              margin:"0 auto 16px", fontSize:30 }}>❌</div>
-            <p style={{ fontWeight:800, fontSize:"1.2rem", color:"#b91c1c" }}>Payment Failed</p>
-            <p style={{ fontSize:13, color:"#888", marginTop:6 }}>Closing in a moment…</p>
+            <div style={{
+              width: 60, height: 60, borderRadius: "50%", background: "#fff1f2",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              margin: "0 auto 16px", fontSize: 30
+            }}>❌</div>
+            <p style={{ fontWeight: 800, fontSize: "1.2rem", color: "#b91c1c" }}>Payment Failed</p>
+            <p style={{ fontSize: 13, color: "#888", marginTop: 6 }}>Closing in a moment…</p>
           </>
         )}
 
@@ -251,17 +285,18 @@ function MockPaymentModal({ booking, total, onSuccess, onFailure, onCancel }) {
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
-export default function BookingPage() {
+function BookingPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const providerId = searchParams.get("providerId");
+  const serviceIdFromQuery = searchParams.get("serviceId");
 
   const [provider, setProvider] = useState(null);
   const [currentRole, setCurrentRole] = useState("");
   const [form, setForm] = useState({
-    serviceId:"", scheduledDate:"", timeSlot:"", type:"one-time",
-    contractMonths:3, contractDays:3, selectedDays:["Mon","Wed","Fri"],
-    notes:"", advanceOnly:false,
+    serviceId: "", scheduledDate: "", timeSlot: "", type: "one-time",
+    contractMonths: 3, contractDays: 3, selectedDays: ["Mon", "Wed", "Fri"],
+    notes: "", advanceOnly: false,
   });
   const [createdBooking, setCreatedBooking] = useState(null);
   const [showPayModal, setShowPayModal] = useState(false);
@@ -287,18 +322,20 @@ export default function BookingPage() {
         const provData = await provRes.json();
         if (!provRes.ok) throw new Error(provData.error || "Failed to load provider");
         setProvider(provData);
-        if (provData.services?.[0]?._id) setForm((f) => ({ ...f, serviceId:provData.services[0]._id }));
+        // Set serviceId from query parameter or use first service
+        const selectedServiceId = serviceIdFromQuery || provData.services?.[0]?._id;
+        if (selectedServiceId) setForm((f) => ({ ...f, serviceId: selectedServiceId }));
       } catch (err) {
         setError(err.message);
       }
     }
     load();
-  }, [providerId, router]);
+  }, [providerId, serviceIdFromQuery, router]);
 
   const serviceOptions = useMemo(() => provider?.services || [], [provider]);
   const selectedService = useMemo(() =>
     serviceOptions.find((s) => s._id === form.serviceId) || serviceOptions[0],
-  [serviceOptions, form.serviceId]);
+    [serviceOptions, form.serviceId]);
 
   const basePrice = Number(selectedService?.price || provider?.basePrice || 0);
   const bookingCharge = Number(provider?.bookingCharge || 50);
@@ -341,8 +378,8 @@ export default function BookingPage() {
     try {
       if (currentRole !== "user") throw new Error("Only user accounts can create bookings.");
       const res = await fetch("/api/bookings", {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           serviceId: form.serviceId,
           scheduledDate: form.scheduledDate,
@@ -368,19 +405,23 @@ export default function BookingPage() {
     }
   }
 
-  const cs = { background:"#fff", border:"1px solid #fecaca", borderRadius:16,
-    padding:"24px", boxShadow:"0 4px 24px rgba(185,28,28,0.05)" };
-
-  const sectionLabel = {
-    fontSize:11, fontWeight:700, letterSpacing:"0.09em", textTransform:"uppercase",
-    color:"#b91c1c", marginBottom:14, display:"flex", alignItems:"center", gap:8,
+  const cs = {
+    background: "#fff", border: "1px solid #fecaca", borderRadius: 16,
+    padding: "24px", boxShadow: "0 4px 24px rgba(185,28,28,0.05)"
   };
 
-  const fieldLabel = { fontSize:12, fontWeight:600, color:"#555", marginBottom:5, display:"block" };
+  const sectionLabel = {
+    fontSize: 11, fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase",
+    color: "#b91c1c", marginBottom: 14, display: "flex", alignItems: "center", gap: 8,
+  };
 
-  const inputStyle = { width:"100%", padding:"10px 13px", border:"1px solid #fecaca",
-    borderRadius:10, fontSize:13, color:"#111", background:"#fef2f2", outline:"none",
-    fontFamily:"inherit" };
+  const fieldLabel = { fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 5, display: "block" };
+
+  const inputStyle = {
+    width: "100%", padding: "10px 13px", border: "1px solid #fecaca",
+    borderRadius: 10, fontSize: 13, color: "#111", background: "#fef2f2", outline: "none",
+    fontFamily: "inherit"
+  };
 
   return (
     <>
@@ -418,15 +459,19 @@ export default function BookingPage() {
         <div className="bk-shell">
 
           {/* Header */}
-          <div style={{ background:"#fff", border:"1px solid #fecaca", borderLeft:"4px solid #b91c1c",
-            borderRadius:16, padding:"22px 28px", marginBottom:20,
-            boxShadow:"0 4px 24px rgba(185,28,28,0.06)" }}>
-            <div style={{ fontSize:11, fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase", color:"#b91c1c", marginBottom:4 }}>User</div>
-            <h1 style={{ fontSize:22, fontWeight:800, color:"#111", letterSpacing:"-0.02em", margin:"0 0 3px" }}>Book a Service</h1>
-            <p style={{ fontSize:13, color:"#888", margin:0 }}>Review details, select timing, and confirm your booking.</p>
+          <div style={{
+            background: "#fff", border: "1px solid #fecaca", borderLeft: "4px solid #b91c1c",
+            borderRadius: 16, padding: "22px 28px", marginBottom: 20,
+            boxShadow: "0 4px 24px rgba(185,28,28,0.06)"
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#b91c1c", marginBottom: 4 }}>User</div>
+            <h1 style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: "-0.02em", margin: "0 0 3px" }}>Book a Service</h1>
+            <p style={{ fontSize: 13, color: "#888", margin: 0 }}>Review details, select timing, and confirm your booking.</p>
             {error && (
-              <div style={{ marginTop:12, padding:"10px 14px", background:"#fef2f2",
-                border:"1px solid #fecaca", borderRadius:10, color:"#b91c1c", fontSize:13 }}>
+              <div style={{
+                marginTop: 12, padding: "10px 14px", background: "#fef2f2",
+                border: "1px solid #fecaca", borderRadius: 10, color: "#b91c1c", fontSize: 13
+              }}>
                 {error}
               </div>
             )}
@@ -439,15 +484,19 @@ export default function BookingPage() {
               <div style={cs}>
 
                 {/* Provider pill */}
-                <div style={{ background:"#fef2f2", border:"1px solid #fecaca", borderRadius:10,
-                  padding:"12px 16px", display:"flex", alignItems:"center",
-                  justifyContent:"space-between", marginBottom:20 }}>
+                <div style={{
+                  background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10,
+                  padding: "12px 16px", display: "flex", alignItems: "center",
+                  justifyContent: "space-between", marginBottom: 20
+                }}>
                   <div>
-                    <div style={{ fontWeight:700, fontSize:14 }}>{provider.businessName}</div>
-                    <div style={{ fontSize:12, color:"#888", marginTop:1 }}>📍 {provider.location || "Unknown location"}</div>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>{provider.businessName}</div>
+                    <div style={{ fontSize: 12, color: "#888", marginTop: 1 }}>📍 {provider.location || "Unknown location"}</div>
                   </div>
-                  <span style={{ fontSize:11, fontWeight:600, background:"#f0fdf4", color:"#15803d",
-                    border:"1px solid #bbf7d0", borderRadius:20, padding:"2px 10px" }}>
+                  <span style={{
+                    fontSize: 11, fontWeight: 600, background: "#f0fdf4", color: "#15803d",
+                    border: "1px solid #bbf7d0", borderRadius: 20, padding: "2px 10px"
+                  }}>
                     Approved ✓
                   </span>
                 </div>
@@ -455,14 +504,14 @@ export default function BookingPage() {
                 {/* ── Service ── */}
                 <div style={{ ...sectionLabel }}>
                   Service Details
-                  <span style={{ flex:1, height:1, background:"#fecaca" }} />
+                  <span style={{ flex: 1, height: 1, background: "#fecaca" }} />
                 </div>
 
-                <div style={{ marginBottom:14 }}>
+                <div style={{ marginBottom: 14 }}>
                   <label style={fieldLabel}>Select Service</label>
                   <select className="bk-sel"
                     value={form.serviceId}
-                    onChange={(e) => setForm({ ...form, serviceId:e.target.value })}>
+                    onChange={(e) => setForm({ ...form, serviceId: e.target.value })}>
                     {serviceOptions.map((s) => (
                       <option key={s._id} value={s._id}>{s.title} — ₹{s.price}</option>
                     ))}
@@ -470,15 +519,15 @@ export default function BookingPage() {
                 </div>
 
                 {/* Type toggle */}
-                <div style={{ marginBottom:14 }}>
+                <div style={{ marginBottom: 14 }}>
                   <label style={fieldLabel}>Booking Type</label>
                   <div className="bk-type-toggle">
                     <button className={`bk-type-btn ${form.type === "one-time" ? "active" : ""}`}
-                      type="button" onClick={() => setForm({ ...form, type:"one-time" })}>
+                      type="button" onClick={() => setForm({ ...form, type: "one-time" })}>
                       One-time
                     </button>
                     <button className={`bk-type-btn ${form.type === "contract" ? "active" : ""}`}
-                      type="button" onClick={() => setForm({ ...form, type:"contract" })}>
+                      type="button" onClick={() => setForm({ ...form, type: "contract" })}>
                       Contract-based
                     </button>
                   </div>
@@ -486,24 +535,28 @@ export default function BookingPage() {
 
                 {/* Contract extras */}
                 {form.type === "contract" && (
-                  <div style={{ background:"#fef2f2", border:"1px solid #fecaca",
-                    borderRadius:10, padding:14, marginBottom:14 }}>
-                    <div style={{ fontSize:11, fontWeight:700, color:"#b91c1c",
-                      letterSpacing:"0.07em", textTransform:"uppercase", marginBottom:10 }}>
+                  <div style={{
+                    background: "#fef2f2", border: "1px solid #fecaca",
+                    borderRadius: 10, padding: 14, marginBottom: 14
+                  }}>
+                    <div style={{
+                      fontSize: 11, fontWeight: 700, color: "#b91c1c",
+                      letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 10
+                    }}>
                       Contract Details
                     </div>
-                    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:10 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
                       <div>
                         <label style={fieldLabel}>Duration (months)</label>
                         <input style={inputStyle} type="number" min={1} max={24}
                           value={form.contractMonths}
-                          onChange={(e) => setForm({ ...form, contractMonths:+e.target.value })} />
+                          onChange={(e) => setForm({ ...form, contractMonths: +e.target.value })} />
                       </div>
                       <div>
                         <label style={fieldLabel}>Days per week</label>
                         <select className="bk-sel"
                           value={form.contractDays}
-                          onChange={(e) => setForm({ ...form, contractDays:+e.target.value })}>
+                          onChange={(e) => setForm({ ...form, contractDays: +e.target.value })}>
                           <option value={1}>1 day/week</option>
                           <option value={2}>2 days/week</option>
                           <option value={3}>3 days/week</option>
@@ -513,15 +566,17 @@ export default function BookingPage() {
                       </div>
                     </div>
                     <label style={fieldLabel}>Preferred days</label>
-                    <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {DAYS.map((d) => (
                         <DayChip key={d} day={d}
                           active={form.selectedDays.includes(d)}
                           onToggle={() => toggleDay(d)} />
                       ))}
                     </div>
-                    <div style={{ marginTop:10, padding:"8px 12px", background:"#fff",
-                      borderRadius:8, border:"1px solid #fecaca", fontSize:12, color:"#555" }}>
+                    <div style={{
+                      marginTop: 10, padding: "8px 12px", background: "#fff",
+                      borderRadius: 8, border: "1px solid #fecaca", fontSize: 12, color: "#555"
+                    }}>
                       📋 Total visits: <strong>{totalVisits}</strong> &nbsp;|&nbsp;
                       Total base: <strong>₹{baseTotal.toLocaleString("en-IN")}</strong>
                     </div>
@@ -531,30 +586,30 @@ export default function BookingPage() {
                 {/* ── Schedule ── */}
                 <div style={{ ...sectionLabel }}>
                   Schedule
-                  <span style={{ flex:1, height:1, background:"#fecaca" }} />
+                  <span style={{ flex: 1, height: 1, background: "#fecaca" }} />
                 </div>
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
                   <div>
                     <label style={fieldLabel}>Date</label>
                     <input style={inputStyle} type="date"
                       min={new Date().toISOString().split("T")[0]}
                       value={form.scheduledDate}
-                      onChange={(e) => setForm({ ...form, scheduledDate:e.target.value })} />
+                      onChange={(e) => setForm({ ...form, scheduledDate: e.target.value })} />
                   </div>
                   <div>
                     <label style={fieldLabel}>Time</label>
                     <TimePicker value={form.timeSlot}
-                      onChange={(v) => setForm({ ...form, timeSlot:v })} />
+                      onChange={(v) => setForm({ ...form, timeSlot: v })} />
                   </div>
                 </div>
 
                 {/* Notes */}
-                <div style={{ marginBottom:18 }}>
+                <div style={{ marginBottom: 18 }}>
                   <label style={fieldLabel}>Additional Notes (optional)</label>
-                  <textarea style={{ ...inputStyle, resize:"vertical", minHeight:70 }}
+                  <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 70 }}
                     placeholder="Any specific instructions..."
                     value={form.notes}
-                    onChange={(e) => setForm({ ...form, notes:e.target.value })} />
+                    onChange={(e) => setForm({ ...form, notes: e.target.value })} />
                 </div>
 
                 <button className="bk-submit" disabled={submitting}
@@ -564,10 +619,10 @@ export default function BookingPage() {
               </div>
 
               {/* ── Right: Summary ── */}
-              <div style={{ ...cs, position:"sticky", top:20 }}>
+              <div style={{ ...cs, position: "sticky", top: 20 }}>
                 <div style={{ ...sectionLabel }}>
                   Payment Breakdown
-                  <span style={{ flex:1, height:1, background:"#fecaca" }} />
+                  <span style={{ flex: 1, height: 1, background: "#fecaca" }} />
                 </div>
 
                 <SumRow label="Base Price"
@@ -581,24 +636,28 @@ export default function BookingPage() {
                     value={`-₹${discount.toLocaleString("en-IN")}`} highlight />
                 )}
 
-                <div style={{ display:"flex", justifyContent:"space-between", fontSize:18,
-                  fontWeight:800, padding:"12px 0 0", borderTop:"1px solid #fecaca", marginTop:6 }}>
+                <div style={{
+                  display: "flex", justifyContent: "space-between", fontSize: 18,
+                  fontWeight: 800, padding: "12px 0 0", borderTop: "1px solid #fecaca", marginTop: 6
+                }}>
                   <span>Total</span>
-                  <span style={{ color:"#b91c1c" }}>₹{totalPayable.toLocaleString("en-IN")}</span>
+                  <span style={{ color: "#b91c1c" }}>₹{totalPayable.toLocaleString("en-IN")}</span>
                 </div>
 
                 {/* Coupons */}
                 {showCoupons && (
-                  <div style={{ marginTop:16 }}>
-                    <div style={{ background:"linear-gradient(135deg,#fff7f7,#fff)",
-                      border:"1px dashed #f87171", borderRadius:10, padding:"10px 13px",
-                      display:"flex", alignItems:"flex-start", gap:10, marginBottom:10 }}>
-                      <span style={{ fontSize:18 }}>🎟️</span>
+                  <div style={{ marginTop: 16 }}>
+                    <div style={{
+                      background: "linear-gradient(135deg,#fff7f7,#fff)",
+                      border: "1px dashed #f87171", borderRadius: 10, padding: "10px 13px",
+                      display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10
+                    }}>
+                      <span style={{ fontSize: 18 }}>🎟️</span>
                       <div>
-                        <div style={{ fontSize:12, fontWeight:700, color:"#b91c1c", marginBottom:2 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#b91c1c", marginBottom: 2 }}>
                           You're eligible for coupons!
                         </div>
-                        <div style={{ fontSize:11, color:"#888" }}>
+                        <div style={{ fontSize: 11, color: "#888" }}>
                           Your order qualifies for a discount.
                         </div>
                       </div>
@@ -608,22 +667,26 @@ export default function BookingPage() {
                         className={`bk-coupon-item ${appliedCoupon?.code === c.code ? "applied" : ""}`}
                         onClick={() => setAppliedCoupon(appliedCoupon?.code === c.code ? null : c)}>
                         <div>
-                          <div style={{ fontSize:12, fontWeight:700, fontFamily:"monospace",
-                            letterSpacing:"0.05em",
-                            color: appliedCoupon?.code === c.code ? "#15803d" : "#b91c1c" }}>
+                          <div style={{
+                            fontSize: 12, fontWeight: 700, fontFamily: "monospace",
+                            letterSpacing: "0.05em",
+                            color: appliedCoupon?.code === c.code ? "#15803d" : "#b91c1c"
+                          }}>
                             {c.code}
                           </div>
-                          <div style={{ fontSize:11, color:"#555", marginTop:1 }}>{c.desc}</div>
+                          <div style={{ fontSize: 11, color: "#555", marginTop: 1 }}>{c.desc}</div>
                         </div>
-                        <div style={{ fontSize:12, fontWeight:700, color:"#15803d" }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#15803d" }}>
                           {c.pct ? `${c.pct}% OFF` : `₹${c.flat} OFF`}
                         </div>
                       </div>
                     ))}
                     {appliedCoupon && (
-                      <div style={{ display:"flex", justifyContent:"space-between",
-                        fontSize:12, fontWeight:600, color:"#15803d", marginTop:6,
-                        padding:"6px 10px", background:"#f0fdf4", borderRadius:8 }}>
+                      <div style={{
+                        display: "flex", justifyContent: "space-between",
+                        fontSize: 12, fontWeight: 600, color: "#15803d", marginTop: 6,
+                        padding: "6px 10px", background: "#f0fdf4", borderRadius: 8
+                      }}>
                         <span>Coupon applied ✓</span>
                         <span>-₹{discount.toLocaleString("en-IN")} saved!</span>
                       </div>
@@ -632,44 +695,56 @@ export default function BookingPage() {
                 )}
 
                 <Link href={`/providers/${provider._id}`}
-                  style={{ display:"block", textAlign:"center", marginTop:16, padding:"9px",
-                    border:"1px solid #fecaca", borderRadius:10, fontSize:13, fontWeight:600,
-                    color:"#888", textDecoration:"none", background:"#fef2f2" }}>
+                  style={{
+                    display: "block", textAlign: "center", marginTop: 16, padding: "9px",
+                    border: "1px solid #fecaca", borderRadius: 10, fontSize: 13, fontWeight: 600,
+                    color: "#888", textDecoration: "none", background: "#fef2f2"
+                  }}>
                   ← Back to Provider
                 </Link>
               </div>
             </div>
           ) : !error ? (
-            <div style={{ background:"#fff", border:"1px solid #fecaca", borderRadius:16,
-              padding:40, textAlign:"center", fontSize:13, color:"#aaa" }}>
+            <div style={{
+              background: "#fff", border: "1px solid #fecaca", borderRadius: 16,
+              padding: 40, textAlign: "center", fontSize: 13, color: "#aaa"
+            }}>
               Loading provider details…
             </div>
           ) : null}
 
           {/* Post-payment success */}
           {paymentDone && createdBooking && (
-            <div style={{ background:"#fff", border:"1px solid #bbf7d0", borderLeft:"4px solid #15803d",
-              borderRadius:16, padding:24, marginTop:16 }}>
-              <p style={{ fontWeight:800, fontSize:"1.1rem", color:"#15803d", marginBottom:8 }}>
+            <div style={{
+              background: "#fff", border: "1px solid #bbf7d0", borderLeft: "4px solid #15803d",
+              borderRadius: 16, padding: 24, marginTop: 16
+            }}>
+              <p style={{ fontWeight: 800, fontSize: "1.1rem", color: "#15803d", marginBottom: 8 }}>
                 🎉 Booking Confirmed & Payment Received
               </p>
-              <div style={{ display:"flex", gap:8, marginBottom:12, flexWrap:"wrap" }}>
+              <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
                 <StatusBadge status={createdBooking.status} />
-                <span style={{ background:"#f0fdf4", color:"#15803d", border:"1px solid #bbf7d0",
-                  fontSize:11, fontWeight:700, padding:"2px 10px", borderRadius:20 }}>Paid</span>
+                <span style={{
+                  background: "#f0fdf4", color: "#15803d", border: "1px solid #bbf7d0",
+                  fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 20
+                }}>Paid</span>
               </div>
-              <p style={{ fontSize:13, color:"#888", marginBottom:16 }}>
+              <p style={{ fontSize: 13, color: "#888", marginBottom: 16 }}>
                 Booking ID: <code>{createdBooking._id}</code>
               </p>
-              <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <Link href="/user/bookings"
-                  style={{ padding:"9px 18px", background:"#7f1d1d", color:"#fff",
-                    borderRadius:10, textDecoration:"none", fontSize:13, fontWeight:700 }}>
+                  style={{
+                    padding: "9px 18px", background: "#7f1d1d", color: "#fff",
+                    borderRadius: 10, textDecoration: "none", fontSize: 13, fontWeight: 700
+                  }}>
                   My Bookings
                 </Link>
                 <Link href={`/providers/${providerId}`}
-                  style={{ padding:"9px 18px", border:"1px solid #fecaca", background:"#fef2f2",
-                    color:"#b91c1c", borderRadius:10, textDecoration:"none", fontSize:13, fontWeight:600 }}>
+                  style={{
+                    padding: "9px 18px", border: "1px solid #fecaca", background: "#fef2f2",
+                    color: "#b91c1c", borderRadius: 10, textDecoration: "none", fontSize: 13, fontWeight: 600
+                  }}>
                   Provider Details
                 </Link>
               </div>
@@ -683,10 +758,10 @@ export default function BookingPage() {
         <div className="bk-overlay" onClick={(e) => { if (e.target.classList.contains("bk-overlay")) setShowConfirmModal(false); }}>
           <div className="bk-modal">
             <div className="bk-modal-head">
-              <div style={{ fontSize:16, fontWeight:800, color:"#111" }}>Confirm Your Booking</div>
-              <div style={{ fontSize:12, color:"#888", marginTop:2 }}>Review everything before you pay.</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "#111" }}>Confirm Your Booking</div>
+              <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>Review everything before you pay.</div>
             </div>
-            <div style={{ padding:"16px 24px", maxHeight:"50vh", overflowY:"auto" }}>
+            <div style={{ padding: "16px 24px", maxHeight: "50vh", overflowY: "auto" }}>
               {[
                 ["Provider", provider?.businessName],
                 ["Service", selectedService?.title || "—"],
@@ -702,53 +777,61 @@ export default function BookingPage() {
                 ...(appliedCoupon ? [["Coupon", `${appliedCoupon.code} (-₹${discount})`]] : []),
               ].map(([k, v]) => (
                 <div key={k} className="bk-modal-row">
-                  <span style={{ color:"#888", fontWeight:500, fontSize:13 }}>{k}</span>
-                  <span style={{ fontWeight:600, fontSize:13, textAlign:"right", maxWidth:"55%" }}>{v}</span>
+                  <span style={{ color: "#888", fontWeight: 500, fontSize: 13 }}>{k}</span>
+                  <span style={{ fontWeight: 600, fontSize: 13, textAlign: "right", maxWidth: "55%" }}>{v}</span>
                 </div>
               ))}
             </div>
-            <div style={{ display:"flex", justifyContent:"space-between", fontSize:20,
-              fontWeight:800, padding:"14px 24px", borderTop:"2px solid #fecaca",
-              background:"#fef2f2" }}>
+            <div style={{
+              display: "flex", justifyContent: "space-between", fontSize: 20,
+              fontWeight: 800, padding: "14px 24px", borderTop: "2px solid #fecaca",
+              background: "#fef2f2"
+            }}>
               <span>Total Payable</span>
-              <span style={{ color:"#b91c1c" }}>₹{totalPayable.toLocaleString("en-IN")}</span>
+              <span style={{ color: "#b91c1c" }}>₹{totalPayable.toLocaleString("en-IN")}</span>
             </div>
 
             {/* Advance payment option for contracts */}
             {form.type === "contract" && (
-              <div style={{ padding:"0 24px 12px" }}>
-                <div style={{ fontSize:11, fontWeight:700, color:"#b91c1c",
-                  letterSpacing:"0.07em", textTransform:"uppercase", margin:"12px 0 8px" }}>
+              <div style={{ padding: "0 24px 12px" }}>
+                <div style={{
+                  fontSize: 11, fontWeight: 700, color: "#b91c1c",
+                  letterSpacing: "0.07em", textTransform: "uppercase", margin: "12px 0 8px"
+                }}>
                   Payment Option
                 </div>
                 <div className="bk-adv-toggle">
                   <button className={`bk-adv-btn ${!form.advanceOnly ? "active" : ""}`}
-                    onClick={() => setForm({ ...form, advanceOnly:false })}>
+                    onClick={() => setForm({ ...form, advanceOnly: false })}>
                     Full Payment<br />
-                    <span style={{ fontSize:10, opacity:0.8 }}>₹{totalPayable.toLocaleString("en-IN")}</span>
+                    <span style={{ fontSize: 10, opacity: 0.8 }}>₹{totalPayable.toLocaleString("en-IN")}</span>
                   </button>
                   <button className={`bk-adv-btn ${form.advanceOnly ? "active" : ""}`}
-                    onClick={() => setForm({ ...form, advanceOnly:true })}>
+                    onClick={() => setForm({ ...form, advanceOnly: true })}>
                     Advance (30%)<br />
-                    <span style={{ fontSize:10, opacity:0.8 }}>₹{advanceAmount.toLocaleString("en-IN")}</span>
+                    <span style={{ fontSize: 10, opacity: 0.8 }}>₹{advanceAmount.toLocaleString("en-IN")}</span>
                   </button>
                 </div>
-                <div style={{ fontSize:11, color:"#888", textAlign:"center" }}>
+                <div style={{ fontSize: 11, color: "#888", textAlign: "center" }}>
                   {form.advanceOnly ? "Remaining balance payable before first visit." : "Pay the full amount now."}
                 </div>
               </div>
             )}
 
-            <div style={{ padding:"12px 24px 20px", display:"flex", gap:8 }}>
+            <div style={{ padding: "12px 24px 20px", display: "flex", gap: 8 }}>
               <button onClick={() => setShowConfirmModal(false)}
-                style={{ flex:1, padding:10, borderRadius:10, border:"1px solid #e5e5e5",
-                  background:"#fff", color:"#555", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>
+                style={{
+                  flex: 1, padding: 10, borderRadius: 10, border: "1px solid #e5e5e5",
+                  background: "#fff", color: "#555", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit"
+                }}>
                 Go Back
               </button>
               <button onClick={createBooking} disabled={submitting}
-                style={{ flex:2, padding:10, borderRadius:10, border:"none", background:"#7f1d1d",
-                  color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"inherit",
-                  opacity: submitting ? 0.6 : 1 }}>
+                style={{
+                  flex: 2, padding: 10, borderRadius: 10, border: "none", background: "#7f1d1d",
+                  color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                  opacity: submitting ? 0.6 : 1
+                }}>
                 {submitting ? "Creating…" : `Pay ₹${(form.advanceOnly ? advanceAmount : totalPayable).toLocaleString("en-IN")} Now`}
               </button>
             </div>
@@ -767,5 +850,25 @@ export default function BookingPage() {
         />
       )}
     </>
+  );
+}
+
+export default function BookingPage() {
+  return (
+    <Suspense fallback={
+      <main style={{ minHeight: "100vh", background: "#fef2f2" }}>
+        <AppNav />
+        <div style={{ maxWidth: 960, margin: "0 auto", padding: "28px 16px" }}>
+          <div style={{
+            background: "#fff", border: "1px solid #fecaca", borderRadius: 14,
+            padding: 40, textAlign: "center", fontSize: 13, color: "#aaa"
+          }}>
+            Loading booking page…
+          </div>
+        </div>
+      </main>
+    }>
+      <BookingPageContent />
+    </Suspense>
   );
 }

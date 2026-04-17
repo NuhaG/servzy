@@ -46,7 +46,7 @@ function VerifiedBadge() {
 function StarRow({ rating }) {
   return (
     <div style={{ display: "flex", gap: 1 }}>
-      {[1,2,3,4,5].map((n) => (
+      {[1, 2, 3, 4, 5].map((n) => (
         <span key={n} style={{ fontSize: 12, color: n <= Math.round(rating) ? "#b91c1c" : "#fecaca", lineHeight: 1 }}>★</span>
       ))}
     </div>
@@ -96,7 +96,7 @@ export default function PublicServicesPage() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    const output = services.filter((item) => {
+    const filteredServices = services.filter((item) => {
       const p = item.providerId || {};
       const rating = Number(p.avgRating || 0);
       const rel = Number(p.reliabilityScore || 0);
@@ -116,14 +116,37 @@ export default function PublicServicesPage() {
       );
     });
 
-    output.sort((a, b) => {
-      if (sortBy === "price_low") return Number(a.price || 0) - Number(b.price || 0);
-      if (sortBy === "price_high") return Number(b.price || 0) - Number(a.price || 0);
-      if (sortBy === "rating") return Number(b.providerId?.avgRating || 0) - Number(a.providerId?.avgRating || 0);
-      return Number(b.providerId?.reliabilityScore || 0) - Number(a.providerId?.reliabilityScore || 0);
+    // Group services by provider
+    const providerMap = new Map();
+    filteredServices.forEach((service) => {
+      const providerId = service.providerId?._id;
+      if (!providerId) return;
+      if (!providerMap.has(providerId)) {
+        providerMap.set(providerId, {
+          provider: service.providerId,
+          services: [],
+          lowestPrice: Infinity,
+        });
+      }
+      const entry = providerMap.get(providerId);
+      entry.services.push(service);
+      const servicePrice = Number(service.price || 0);
+      if (servicePrice < entry.lowestPrice) {
+        entry.lowestPrice = servicePrice;
+      }
     });
 
-    return output;
+    const providerList = Array.from(providerMap.values());
+
+    // Sort providers
+    providerList.sort((a, b) => {
+      if (sortBy === "price_low") return a.lowestPrice - b.lowestPrice;
+      if (sortBy === "price_high") return b.lowestPrice - a.lowestPrice;
+      if (sortBy === "rating") return Number(b.provider?.avgRating || 0) - Number(a.provider?.avgRating || 0);
+      return Number(b.provider?.reliabilityScore || 0) - Number(a.provider?.reliabilityScore || 0);
+    });
+
+    return providerList;
   }, [services, search, category, maxPrice, minRating, reliability, verifiedOnly, sortBy]);
 
   const pageSize = 6;
@@ -138,13 +161,14 @@ export default function PublicServicesPage() {
 
   const mapProviders = useMemo(() => {
     const deduped = new Map();
-    filtered.forEach((service) => {
-      const p = service.providerId || {};
+    filtered.forEach((entry) => {
+      const p = entry.provider || {};
       const lat = Number(p.lat), lng = Number(p.lng);
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-      const key = p._id || `${p.businessName}-${lat}-${lng}`;
+      const key = p._id;
       if (deduped.has(key)) return;
-      deduped.set(key, { _id: key, businessName: p.businessName, location: p.location, avgRating: p.avgRating, lat, lng, serviceTitle: service.title });
+      const serviceTitle = entry.services.map((s) => s.title).join(", ");
+      deduped.set(key, { _id: key, businessName: p.businessName, location: p.location, avgRating: p.avgRating, lat, lng, serviceTitle });
     });
     return Array.from(deduped.values());
   }, [filtered]);
@@ -323,37 +347,37 @@ export default function PublicServicesPage() {
                 </div>
 
                 <div className="sp-filter-group">
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
-                    <span className="sp-filter-label" style={{ marginBottom:0 }}>Max Price</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <span className="sp-filter-label" style={{ marginBottom: 0 }}>Max Price</span>
                     <span className="sp-range-val">₹{maxPrice.toLocaleString("en-IN")}</span>
                   </div>
                   <input className="sp-range" type="range" min={0} max={5000} step={100} value={maxPrice}
                     onChange={(e) => setMaxPrice(Number(e.target.value))} />
-                  <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, color:"#aaa", marginTop:2 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#aaa", marginTop: 2 }}>
                     <span>₹0</span><span>₹5,000</span>
                   </div>
                 </div>
 
                 <div className="sp-filter-group">
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
-                    <span className="sp-filter-label" style={{ marginBottom:0 }}>Min Rating</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <span className="sp-filter-label" style={{ marginBottom: 0 }}>Min Rating</span>
                     <span className="sp-range-val">{minRating.toFixed(1)}+</span>
                   </div>
                   <input className="sp-range" type="range" min={0} max={5} step={0.5} value={minRating}
                     onChange={(e) => setMinRating(Number(e.target.value))} />
-                  <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, color:"#aaa", marginTop:2 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#aaa", marginTop: 2 }}>
                     <span>0</span><span>5.0</span>
                   </div>
                 </div>
 
                 <div className="sp-filter-group">
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
-                    <span className="sp-filter-label" style={{ marginBottom:0 }}>Min Reliability</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <span className="sp-filter-label" style={{ marginBottom: 0 }}>Min Reliability</span>
                     <span className="sp-range-val">{reliability}%</span>
                   </div>
                   <input className="sp-range" type="range" min={0} max={100} step={5} value={reliability}
                     onChange={(e) => setReliability(Number(e.target.value))} />
-                  <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, color:"#aaa", marginTop:2 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#aaa", marginTop: 2 }}>
                     <span>0%</span><span>100%</span>
                   </div>
                 </div>
@@ -388,7 +412,7 @@ export default function PublicServicesPage() {
               {error && (
                 <div className="sp-error">
                   {error}
-                  <div style={{ marginTop:8 }}>
+                  <div style={{ marginTop: 8 }}>
                     <button className="sp-btn-secondary" onClick={() => window.location.reload()}>Retry</button>
                   </div>
                 </div>
@@ -398,7 +422,7 @@ export default function PublicServicesPage() {
                 <>
                   <ProviderMap providers={mapProviders} />
                   {!mapProviders.length && (
-                    <div className="sp-empty" style={{ marginTop:10 }}>
+                    <div className="sp-empty" style={{ marginTop: 10 }}>
                       No provider coordinates available for the current filters.
                     </div>
                   )}
@@ -407,23 +431,28 @@ export default function PublicServicesPage() {
 
               {!loading && !error && view === "list" && (
                 <>
-                  {paginated.map((service) => {
-                    const provider = service.providerId || {};
+                  {paginated.map((entry) => {
+                    const provider = entry.provider || {};
+                    const services = entry.services || [];
                     const isVerified = provider.status === "approved";
                     const rating = Number(provider.avgRating || 0);
                     const rel = Number(provider.reliabilityScore || 0);
-                    const totalPrice =
-                      Number(service.price || provider.basePrice || 0) +
+                    const lowestPrice = entry.lowestPrice;
+                    const totalLowestPrice =
+                      lowestPrice +
                       Number(provider.bookingCharge || 0) +
                       Number(provider.consultationFee || 0) +
                       Number(provider.serviceFee || 0);
 
+                    // Get provider image
+                    const providerImage = provider.avatarUrl || provider.photo || `https://i.pravatar.cc/320?u=${encodeURIComponent(provider._id || "provider")}`;
+
                     return (
-                      <div key={service._id} className="sp-card">
+                      <div key={provider._id} className="sp-card">
                         <div className="sp-card-inner">
                           <img
-                            src={getServiceImage(service, provider)}
-                            alt={service.title}
+                            src={providerImage}
+                            alt={provider.businessName}
                             className="sp-card-img"
                           />
                           <div className="sp-card-body">
@@ -432,38 +461,86 @@ export default function PublicServicesPage() {
                                 <span className="sp-biz-name">{provider.businessName || "Provider"}</span>
                                 {isVerified && <VerifiedBadge />}
                               </div>
-                              <div className="sp-service-name">{service.title}</div>
                               <div className="sp-loc">📍 {provider.location || "Location not specified"}</div>
 
+                              {/* Services list */}
+                              <div style={{ marginBottom: 10, marginTop: 8 }}>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: "#b91c1c", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                  Services Offered ({services.length})
+                                </div>
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                                  {services.slice(0, 5).map((svc) => (
+                                    <Link
+                                      key={svc._id}
+                                      href={`/providers/${provider._id}?serviceId=${encodeURIComponent(svc._id)}`}
+                                      style={{
+                                        fontSize: 12,
+                                        fontWeight: 600,
+                                        padding: "4px 10px",
+                                        borderRadius: 18,
+                                        border: "1px solid #fecaca",
+                                        background: "#fef2f2",
+                                        color: "#b91c1c",
+                                        textDecoration: "none",
+                                        cursor: "pointer",
+                                        transition: "all 0.15s",
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        e.target.style.background = "#7f1d1d";
+                                        e.target.style.color = "#fff";
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        e.target.style.background = "#fef2f2";
+                                        e.target.style.color = "#b91c1c";
+                                      }}
+                                    >
+                                      {svc.title}
+                                    </Link>
+                                  ))}
+                                  {services.length > 5 && (
+                                    <span style={{
+                                      fontSize: 12,
+                                      fontWeight: 600,
+                                      padding: "4px 10px",
+                                      borderRadius: 18,
+                                      border: "1px solid #e5e5e5",
+                                      background: "#fafafa",
+                                      color: "#888",
+                                    }}>
+                                      +{services.length - 5} more
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
                               <div className="sp-pills">
-                                <span className="sp-pill-gray">{service.category || "General"}</span>
-                                <span className="sp-pill" style={{ background:"#fafafa", color:"#555", borderColor:"#e5e5e5" }}>
+                                <span className="sp-pill" style={{ background: "#fafafa", color: "#555", borderColor: "#e5e5e5" }}>
                                   ★ {rating.toFixed(1)}
                                 </span>
-                                <span className="sp-pill" style={{ background:"#fafafa", color:"#555", borderColor:"#e5e5e5" }}>
+                                <span className="sp-pill" style={{ background: "#fafafa", color: "#555", borderColor: "#e5e5e5" }}>
                                   {rel}% reliable
                                 </span>
                               </div>
 
                               {/* Reliability bar */}
                               <div className="sp-rel-bar">
-                                <div className="sp-rel-fill" style={{ width:`${Math.min(rel, 100)}%` }} />
+                                <div className="sp-rel-fill" style={{ width: `${Math.min(rel, 100)}%` }} />
                               </div>
                             </div>
 
                             <div className="sp-card-bottom">
                               <div>
-                                <div className="sp-price">₹{totalPrice.toLocaleString("en-IN")}</div>
-                                <div className="sp-price-lbl">total estimate</div>
+                                <div className="sp-price">₹{totalLowestPrice.toLocaleString("en-IN")}</div>
+                                <div className="sp-price-lbl">from (lowest service)</div>
                               </div>
                               <div className="sp-actions">
                                 <Link
-                                  href={`/providers/${provider._id}?serviceId=${encodeURIComponent(service._id)}`}
+                                  href={`/providers/${provider._id}`}
                                   className="sp-btn-primary">
                                   View Profile
                                 </Link>
                                 <Link
-                                  href={`/providers/${provider._id}?serviceId=${encodeURIComponent(service._id)}`}
+                                  href={`/providers/${provider._id}`}
                                   className="sp-btn-secondary">
                                   More Details
                                 </Link>
