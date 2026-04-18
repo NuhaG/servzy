@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { UserButton, useAuth } from "@clerk/nextjs";
 import { useEffect, useMemo, useState } from "react";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function AppNav() {
   const { isSignedIn } = useAuth();
@@ -97,6 +98,7 @@ export default function AppNav() {
                 {item.label}
               </Link>
             ))}
+            <NotificationBell />
             <div style={{ marginLeft: 6 }}>
               <UserButton afterSignOutUrl="/" />
             </div>
