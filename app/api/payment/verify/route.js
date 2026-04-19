@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { connectDB } from "@/lib/db";
 import { auth } from "@clerk/nextjs/server";
 import User from "@/models/User";
+import Booking from "@/models/Booking";
 import Notification from "@/models/Notification";
 
 export async function POST(request) {
@@ -20,10 +21,24 @@ export async function POST(request) {
         }
 
         const payload = await request.json();
-        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, amount, bookingId } = payload;
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, amount, bookingId, bookingId } = payload;
 
         if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
             return NextResponse.json({ error: "Missing payment details" }, { status: 400 });
+        }
+
+        // If bookingId is provided, verify the booking is accepted
+        if (bookingId) {
+            const booking = await Booking.findById(bookingId);
+            if (!booking) {
+                return NextResponse.json({ error: "Booking not found" }, { status: 404 });
+            }
+            if (booking.status !== "accepted") {
+                return NextResponse.json(
+                    { error: "Payment can only be made after the provider accepts your booking request." },
+                    { status: 400 }
+                );
+            }
         }
 
         // Verify signature

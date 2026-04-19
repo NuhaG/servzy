@@ -304,7 +304,34 @@ function BookingPageContent() {
   const [paymentDone, setPaymentDone] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const hasBookingDetailsChanged = useMemo(() => {
+    if (!createdBooking) return false;
+    const bookingDate = createdBooking.scheduledDate
+      ? new Date(createdBooking.scheduledDate).toISOString().split("T")[0]
+      : "";
+    return (
+      String(form.serviceId) !== String(createdBooking.serviceId) ||
+      form.type !== createdBooking.type ||
+      form.scheduledDate !== bookingDate ||
+      form.timeSlot !== (createdBooking.timeSlot || "") ||
+      form.notes !== (createdBooking.notes || "")
+    );
+  }, [createdBooking, form]);
+
+  const isFormComplete = useMemo(() => {
+    if (!form.serviceId || !form.scheduledDate || !form.timeSlot) return false;
+    if (form.type === "contract") {
+      if (!form.contractMonths || form.contractMonths < 1) return false;
+      if (!form.contractDays || form.contractDays < 1) return false;
+      if (!form.selectedDays || !form.selectedDays.length) return false;
+    }
+    return true;
+  }, [form]);
+
+  const isRequestButtonDisabled = submitting || !isFormComplete || (createdBooking && !hasBookingDetailsChanged);
 
   useEffect(() => {
     async function load() {
@@ -397,8 +424,13 @@ function BookingPageContent() {
       if (!res.ok) throw new Error(data.error || "Failed to create booking");
       setCreatedBooking(data);
       setShowConfirmModal(false);
-      setShowPayModal(true);
+      setShowPayModal(false);
+      setPaymentDone(false);
+      setInfo("Service request created. Payment will be enabled once the provider approves your booking.");
+      setError("");
     } catch (err) {
+      setCreatedBooking(null);
+      setInfo("");
       setError(err.message);
     } finally {
       setSubmitting(false);
@@ -467,6 +499,14 @@ function BookingPageContent() {
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#b91c1c", marginBottom: 4 }}>User</div>
             <h1 style={{ fontSize: 22, fontWeight: 800, color: "#111", letterSpacing: "-0.02em", margin: "0 0 3px" }}>Book a Service</h1>
             <p style={{ fontSize: 13, color: "#888", margin: 0 }}>Review details, select timing, and confirm your booking.</p>
+            {info && (
+              <div style={{
+                marginTop: 12, padding: "10px 14px", background: "#ecfdf5",
+                border: "1px solid #bbf7d0", borderRadius: 10, color: "#065f46", fontSize: 13
+              }}>
+                {info}
+              </div>
+            )}
             {error && (
               <div style={{
                 marginTop: 12, padding: "10px 14px", background: "#fef2f2",
@@ -603,7 +643,6 @@ function BookingPageContent() {
                   </div>
                 </div>
 
-                {/* Notes */}
                 <div style={{ marginBottom: 18 }}>
                   <label style={fieldLabel}>Additional Notes (optional)</label>
                   <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 70 }}
@@ -612,9 +651,9 @@ function BookingPageContent() {
                     onChange={(e) => setForm({ ...form, notes: e.target.value })} />
                 </div>
 
-                <button className="bk-submit" disabled={submitting}
+                <button className="bk-submit" disabled={isRequestButtonDisabled}
                   onClick={() => setShowConfirmModal(true)}>
-                  Review & Confirm Booking →
+                  {createdBooking ? hasBookingDetailsChanged ? "Update Request" : "Request Sent" : "Request Service"}
                 </button>
               </div>
 
@@ -643,6 +682,39 @@ function BookingPageContent() {
                   <span>Total</span>
                   <span style={{ color: "#b91c1c" }}>₹{totalPayable.toLocaleString("en-IN")}</span>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPayModal(true)}
+                  disabled={!createdBooking || createdBooking.status !== "accepted" || paymentDone}
+                  style={{
+                    width: "100%",
+                    marginTop: 16,
+                    padding: 13,
+                    borderRadius: 12,
+                    border: "none",
+                    background: createdBooking && createdBooking.status === "accepted" && !paymentDone ? "#7f1d1d" : "#f3b2b2",
+                    color: createdBooking && createdBooking.status === "accepted" && !paymentDone ? "#fff" : "#8b1f1f",
+                    fontSize: 15,
+                    fontWeight: 700,
+                    cursor: !createdBooking || createdBooking.status !== "accepted" || paymentDone ? "not-allowed" : "pointer",
+                    opacity: !createdBooking || createdBooking.status !== "accepted" || paymentDone ? 0.55 : 1,
+                    transition: "background 0.15s"
+                  }}>
+                  {paymentDone ? "Payment Complete" : "Pay Now"}
+                </button>
+                {!createdBooking ? (
+                  <p style={{ marginTop: 10, fontSize: 12, color: "#888" }}>
+                    Request the service first. Payment will be enabled after provider approval.
+                  </p>
+                ) : !hasBookingDetailsChanged ? (
+                  <p style={{ marginTop: 10, fontSize: 12, color: "#888" }}>
+                    Your request has been sent. Change the date, time, or service details to submit a new request.
+                  </p>
+                ) : createdBooking.status !== "accepted" ? (
+                  <p style={{ marginTop: 10, fontSize: 12, color: "#888" }}>
+                    Details changed. You can submit the updated request now.
+                  </p>
+                ) : null}
 
                 {/* Coupons */}
                 {showCoupons && (
@@ -655,7 +727,7 @@ function BookingPageContent() {
                       <span style={{ fontSize: 18 }}>🎟️</span>
                       <div>
                         <div style={{ fontSize: 12, fontWeight: 700, color: "#b91c1c", marginBottom: 2 }}>
-                          You're eligible for coupons!
+                          You&apos;re eligible for coupons!
                         </div>
                         <div style={{ fontSize: 11, color: "#888" }}>
                           Your order qualifies for a discount.
@@ -832,7 +904,7 @@ function BookingPageContent() {
                   color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
                   opacity: submitting ? 0.6 : 1
                 }}>
-                {submitting ? "Creating…" : `Pay ₹${(form.advanceOnly ? advanceAmount : totalPayable).toLocaleString("en-IN")} Now`}
+                {submitting ? "Requesting…" : `Request Service`}
               </button>
             </div>
           </div>
