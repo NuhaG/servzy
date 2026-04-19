@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { connectDB } from "@/lib/db";
 import { auth } from "@clerk/nextjs/server";
 import User from "@/models/User";
+import Notification from "@/models/Notification";
 
 export async function POST(request) {
     try {
@@ -18,7 +19,8 @@ export async function POST(request) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = await request.json();
+        const payload = await request.json();
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, amount, bookingId } = payload;
 
         if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
             return NextResponse.json({ error: "Missing payment details" }, { status: 400 });
@@ -34,6 +36,27 @@ export async function POST(request) {
         if (razorpay_signature === expectedSign) {
             // Payment verified successfully
             // Here you can update your database, e.g., mark booking as paid
+
+            // dispatch notification
+            try {
+                // If you pass bookingId or amount in the request payload, use them here.
+                // Assuming client passes them or we notify generally since payment verified:
+                // amount and bookingId are extracted from the initial request payload
+                
+                await Notification.create({
+                    userId: user._id, 
+                    bookingId: bookingId || undefined,
+                    title: "Payment Successful",
+                    message: amount 
+                        ? `Payment of ₹${amount} has been verified.` 
+                        : "Your recent payment has been verified successfully.",
+                    type: "payment",
+                    actionUrl: bookingId ? `/bookings/${bookingId}` : '/bookings',
+                });
+            } catch (notifErr) {
+                console.error("Failed to create payment notification:", notifErr);
+            }
+
             return NextResponse.json({
                 success: true,
                 message: "Payment verified successfully",

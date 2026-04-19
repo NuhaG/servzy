@@ -14,26 +14,27 @@ export async function PATCH(req, { params }) {
 
     await connectDB();
 
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
-    const { read } = body;
+    const { isRead } = body; // updated to use isRead
 
     const notification = await Notification.findById(id);
     if (!notification) {
       return NextResponse.json({ error: "Notification not found" }, { status: 404 });
     }
 
-    // Check authorization
+    // Check authorization: user can only modify their own notification, or admins can modify anything
     const isOwner =
-      (hasRole(user, [ROLES.USER]) && String(notification.userId) === String(user._id)) ||
-      (hasRole(user, [ROLES.PROVIDER]) && String(notification.providerId) === String(user._id));
+      String(notification.userId) === String(user._id) ||
+      String(notification.providerId) === String(user._id) || 
+      String(notification.adminId) === String(user._id);
 
     if (!isOwner && !hasRole(user, [ROLES.ADMIN])) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    if (typeof read === "boolean") {
-      notification.read = read;
+    if (typeof isRead === "boolean") {
+      notification.isRead = isRead;
     }
 
     await notification.save();
@@ -58,7 +59,7 @@ export async function DELETE(req, { params }) {
 
     await connectDB();
 
-    const { id } = params;
+    const { id } = await params;
     const notification = await Notification.findById(id);
 
     if (!notification) {
@@ -67,8 +68,9 @@ export async function DELETE(req, { params }) {
 
     // Check authorization
     const isOwner =
-      (hasRole(user, [ROLES.USER]) && String(notification.userId) === String(user._id)) ||
-      (hasRole(user, [ROLES.PROVIDER]) && String(notification.providerId) === String(user._id));
+      String(notification.userId) === String(user._id) ||
+      String(notification.providerId) === String(user._id) || 
+      String(notification.adminId) === String(user._id);
 
     if (!isOwner && !hasRole(user, [ROLES.ADMIN])) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });

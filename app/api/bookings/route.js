@@ -5,6 +5,7 @@ import Service from "@/models/Service";
 import Provider from "@/models/Provider";
 import { getSessionUser, hasRole } from "@/lib/rbac";
 import { ROLES } from "@/lib/roles";
+import Notification from "@/models/Notification";
 
 // CREATE booking
 export async function POST(req) {
@@ -83,6 +84,21 @@ export async function POST(req) {
             amount,
             type
         });
+
+        // dispatch notification
+        try {
+            await Notification.create({
+                userId: bookingUserId,
+                providerId: provider._id,
+                bookingId: booking._id,
+                title: "New Booking Started",
+                message: `A new booking has been created for "${service.title}" by the user.`,
+                type: "booking",
+                actionUrl: `/bookings/${booking._id}`,
+            });
+        } catch (notifErr) {
+            console.error("Failed to create booking notification:", notifErr);
+        }
 
         return NextResponse.json(booking, { status: 201 });
 

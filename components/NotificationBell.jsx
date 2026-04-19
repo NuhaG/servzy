@@ -4,40 +4,28 @@ import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 
 const notificationTypeIcons = {
-  request_sent: "📤",
-  request_accepted: "✅",
-  request_rejected: "❌",
-  payment_made: "💳",
-  payment_received: "💰",
-  service_scheduled: "📅",
+  booking: "📅",
+  payment: "💳",
+  review: "⭐",
   warning: "⚠️",
-  review_received: "⭐",
-  complaint_filed: "📋",
 };
 
 const notificationTypeColors = {
-  request_sent: "#3b82f6",
-  request_accepted: "#10b981",
-  request_rejected: "#ef4444",
-  payment_made: "#f59e0b",
-  payment_received: "#10b981",
-  service_scheduled: "#8b5cf6",
-  warning: "#f97316",
-  review_received: "#f59e0b",
-  complaint_filed: "#ef4444",
+  booking: "#3b82f6", // Blue
+  payment: "#10b981", // Green
+  review: "#f59e0b", // Yellow/Amber
+  warning: "#ef4444", // Red
 };
 
 export default function NotificationBell() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const dropdownRef = useRef(null);
   const bellRef = useRef(null);
 
   useEffect(() => {
     loadNotifications();
-    // Poll for new notifications every 15 seconds instead of 30
     const interval = setInterval(loadNotifications, 15000);
     return () => clearInterval(interval);
   }, []);
@@ -68,7 +56,6 @@ export default function NotificationBell() {
         return;
       }
       
-      console.log("Notifications loaded:", data);
       setNotifications(data.notifications || []);
       setUnreadCount(data.unreadCount || 0);
     } catch (err) {
@@ -81,10 +68,10 @@ export default function NotificationBell() {
       const res = await fetch(`/api/notifications/${notificationId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ read: true }),
+        body: JSON.stringify({ isRead: true }), // Using the new isRead property
       });
       if (res.ok) {
-        loadNotifications();
+        await loadNotifications();
       }
     } catch (err) {
       console.error("Failed to mark as read:", err);
@@ -172,10 +159,10 @@ export default function NotificationBell() {
             right: 0,
             marginTop: "8px",
             background: "#fff",
-            border: "1px solid #fecaca",
+            border: "1px solid #e5e7eb",
             borderRadius: "12px",
             boxShadow:
-              "0 10px 40px rgba(185, 28, 28, 0.15), 0 0 0 1px rgba(185, 28, 28, 0.1)",
+              "0 10px 40px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05)",
             width: "380px",
             maxHeight: "500px",
             overflowY: "auto",
@@ -186,11 +173,11 @@ export default function NotificationBell() {
           <div
             style={{
               padding: "16px",
-              borderBottom: "1px solid #fecaca",
+              borderBottom: "1px solid #e5e7eb",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              background: "#fef2f2",
+              background: "#f9fafb",
               borderRadius: "12px 12px 0 0",
             }}
           >
@@ -202,8 +189,8 @@ export default function NotificationBell() {
                 style={{
                   fontSize: "11px",
                   fontWeight: "600",
-                  color: "#b91c1c",
-                  background: "#fff1f2",
+                  color: "#3b82f6",
+                  background: "#eff6ff",
                   padding: "2px 8px",
                   borderRadius: "20px",
                 }}
@@ -219,7 +206,7 @@ export default function NotificationBell() {
               style={{
                 padding: "32px 16px",
                 textAlign: "center",
-                color: "#aaa",
+                color: "#9ca3af",
                 fontSize: "13px",
               }}
             >
@@ -229,22 +216,30 @@ export default function NotificationBell() {
           ) : (
             <div>
               {notifications.map((notif) => (
-                <div
+                <a
                   key={notif._id}
-                  onClick={() => !notif.read && markAsRead(notif._id)}
+                  href="/notifications"
+                  onClick={(e) => {
+                    // Fire and forget read status update without blocking navigation!
+                    if (!notif.isRead) {
+                      markAsRead(notif._id);
+                    }
+                  }}
                   style={{
+                    display: "block",
+                    textDecoration: "none",
                     padding: "12px 16px",
-                    borderBottom: "1px solid #fef2f2",
+                    borderBottom: "1px solid #f3f4f6",
                     cursor: "pointer",
-                    background: notif.read ? "#fff" : "#fff9f5",
+                    background: notif.isRead ? "#fff" : "#eff6ff",
                     transition: "background 0.15s",
                     position: "relative",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = notif.read ? "#fef2f2" : "#ffe8dd";
+                    e.currentTarget.style.background = notif.isRead ? "#f9fafb" : "#dbeafe";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = notif.read ? "#fff" : "#fff9f5";
+                    e.currentTarget.style.background = notif.isRead ? "#fff" : "#eff6ff";
                   }}
                 >
                   <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
@@ -260,7 +255,7 @@ export default function NotificationBell() {
                       <div
                         style={{
                           fontSize: "13px",
-                          fontWeight: notif.read ? "500" : "700",
+                          fontWeight: notif.isRead ? "500" : "700",
                           color: "#111",
                           marginBottom: "2px",
                           display: "flex",
@@ -268,14 +263,14 @@ export default function NotificationBell() {
                           gap: "6px",
                         }}
                       >
-                        {notif.title}
-                        {!notif.read && (
+                         {notif.title || notif.type.charAt(0).toUpperCase() + notif.type.slice(1)}
+                        {!notif.isRead && (
                           <span
                             style={{
                               width: "6px",
                               height: "6px",
                               borderRadius: "50%",
-                              background: notificationTypeColors[notif.type] || "#b91c1c",
+                              background: notificationTypeColors[notif.type] || "#3b82f6",
                             }}
                           ></span>
                         )}
@@ -283,7 +278,7 @@ export default function NotificationBell() {
                       <div
                         style={{
                           fontSize: "12px",
-                          color: "#666",
+                          color: "#4b5563",
                           lineHeight: "1.4",
                           marginBottom: "4px",
                         }}
@@ -293,7 +288,7 @@ export default function NotificationBell() {
                       <div
                         style={{
                           fontSize: "11px",
-                          color: "#aaa",
+                          color: "#9ca3af",
                         }}
                       >
                         {formatTime(notif.createdAt)}
@@ -307,10 +302,10 @@ export default function NotificationBell() {
                         cursor: "pointer",
                         fontSize: "16px",
                         padding: "0",
-                        color: "#ccc",
+                        color: "#d1d5db",
                         flexShrink: 0,
                         opacity: 0,
-                        transition: "opacity 0.15s",
+                        transition: "opacity 0.15s, color 0.15s",
                       }}
                       onMouseEnter={(e) => {
                         e.target.style.opacity = "1";
@@ -324,7 +319,7 @@ export default function NotificationBell() {
                       ✕
                     </button>
                   </div>
-                </div>
+                </a>
               ))}
             </div>
           )}
@@ -334,24 +329,27 @@ export default function NotificationBell() {
             <div
               style={{
                 padding: "12px 16px",
-                borderTop: "1px solid #fecaca",
+                borderTop: "1px solid #e5e7eb",
                 textAlign: "center",
-                background: "#fef2f2",
+                background: "#f9fafb",
                 borderRadius: "0 0 12px 12px",
               }}
             >
-              <Link
-                href="#"
-                onClick={() => setOpen(false)}
+              <a
+                href="/notifications"
+                onClick={() => {
+                   setOpen(false);
+                }}
                 style={{
                   fontSize: "12px",
                   fontWeight: "600",
-                  color: "#b91c1c",
+                  color: "#3b82f6",
                   textDecoration: "none",
+                  display: "inline-block"
                 }}
               >
                 View all notifications →
-              </Link>
+              </a>
             </div>
           )}
         </div>

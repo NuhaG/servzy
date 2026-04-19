@@ -5,37 +5,44 @@ const NotificationSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      required: false,
     },
     providerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Provider",
+      required: false,
+    },
+    adminId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Admin", // Assuming an Admin model exists, or it can be generic
+      required: false,
     },
     bookingId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Booking",
+      required: false,
     },
-    title: String,
-    message: String,
+    title: {
+      type: String,
+      required: false,
+    },
+    message: {
+      type: String,
+      required: true,
+    },
     type: {
       type: String,
-      enum: [
-        "request_sent",
-        "request_accepted",
-        "request_rejected",
-        "payment_made",
-        "payment_received",
-        "service_scheduled",
-        "warning",
-        "review_received",
-        "complaint_filed",
-      ],
-      default: "request_sent",
+      enum: ["booking", "payment", "review", "warning"],
+      required: true,
     },
-    read: {
+    isRead: {
       type: Boolean,
       default: false,
     },
-    actionUrl: String,
+    actionUrl: {
+      type: String, 
+      required: false,
+    },
     metadata: mongoose.Schema.Types.Mixed,
   },
   { timestamps: true }
