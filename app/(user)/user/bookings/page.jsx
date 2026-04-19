@@ -39,7 +39,7 @@ function MockPaymentModal({ booking, onSuccess, onFailure, onCancel }) {
         setTimeout(() => onSuccess(data), 800);
       } else {
         setStep("failed");
-        setTimeout(() => onFailure(data.message), 800);
+        setTimeout(() => onFailure(data.error || data.message), 800);
       }
     } catch {
       setStep("failed");
@@ -175,6 +175,11 @@ function UserBookingsPageContent() {
   }, [bookings, tab]);
 
   function openPaymentForBooking(booking) {
+    // Only allow payment if booking is accepted by provider
+    if (booking.status !== "accepted") {
+      setError("Payment can only be made after the provider accepts your booking request.");
+      return;
+    }
     const paymentStatus = booking.paymentStatus || "pending";
     if (!["pending", "failed"].includes(paymentStatus)) return;
     setSelectedBooking(booking);
@@ -242,13 +247,16 @@ function UserBookingsPageContent() {
               }}
               onClick={() => {
                 if (tab !== "active") return;
-                openPaymentForBooking(booking);
+                if (booking.status === "accepted") {
+                  openPaymentForBooking(booking);
+                }
               }}
-              role={tab === "active" ? "button" : undefined}
-              tabIndex={tab === "active" ? 0 : undefined}
+              role={tab === "active" && booking.status === "accepted" ? "button" : undefined}
+              tabIndex={tab === "active" && booking.status === "accepted" ? 0 : undefined}
               onKeyDown={(event) => {
                 if (event.key !== "Enter" && event.key !== " ") return;
                 if (tab !== "active") return;
+                if (booking.status !== "accepted") return;
                 event.preventDefault();
                 openPaymentForBooking(booking);
               }}
@@ -263,15 +271,20 @@ function UserBookingsPageContent() {
                     <span className="sv-pill">{booking.status}</span>
                     <PaymentBadge status={booking.paymentStatus || "pending"} />
                   </div>
-                  {tab === "active" && ["pending", "failed"].includes(booking.paymentStatus || "pending") ? (
+                  {tab === "active" && booking.status === "accepted" && ["pending", "failed"].includes(booking.paymentStatus || "pending") ? (
                     <p className="sv-subtitle" style={{ marginTop: 8 }}>
                       Click card to complete payment.
+                    </p>
+                  ) : null}
+                  {tab === "active" && booking.status === "pending" && ["pending", "failed"].includes(booking.paymentStatus || "pending") ? (
+                    <p className="sv-subtitle" style={{ marginTop: 8 }}>
+                      Waiting for provider approval...
                     </p>
                   ) : null}
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <p style={{ color: "#c94b2c", fontWeight: 800, fontSize: 24 }}>Rs {booking.amount || 0}</p>
-                  {tab === "active" && ["pending", "failed"].includes(booking.paymentStatus || "pending") ? (
+                  {tab === "active" && booking.status === "accepted" && ["pending", "failed"].includes(booking.paymentStatus || "pending") ? (
                     <button
                       className="sv-btn-secondary"
                       style={{ marginTop: 8 }}

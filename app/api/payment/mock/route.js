@@ -31,6 +31,14 @@ export async function POST(req) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // Ensure booking is accepted by provider before payment
+    if (booking.status !== "accepted") {
+      return NextResponse.json(
+        { error: "Payment can only be made after the provider accepts your booking request." },
+        { status: 400 }
+      );
+    }
+
     if (simulateFailure) {
       await Booking.findByIdAndUpdate(bookingId, {
         paymentStatus: "failed",
