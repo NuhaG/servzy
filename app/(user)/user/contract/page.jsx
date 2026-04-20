@@ -16,8 +16,25 @@ function formatDate(d) {
   return new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
+function addMonthsSafe(dateValue, months) {
+  if (!dateValue || !months) return null;
+  const next = new Date(dateValue);
+  next.setMonth(next.getMonth() + Number(months));
+  return next;
+}
+
+function contractStartDate(contract) {
+  return contract.startDate || contract.scheduledDate || null;
+}
+
+function contractEndDate(contract) {
+  return contract.endDate || addMonthsSafe(contractStartDate(contract), contract.contractMonths);
+}
+
 function statusStyle(status) {
   if (status === "active")    return { bg:"#f0fdf4", color:"#15803d", border:"#bbf7d0" };
+  if (status === "accepted")  return { bg:"#eff6ff", color:"#1d4ed8", border:"#bfdbfe" };
+  if (status === "pending")   return { bg:"#fefce8", color:"#854d0e", border:"#fde68a" };
   if (status === "completed") return { bg:"#fef2f2", color:"#888",    border:"#e5e5e5" };
   if (status === "expired")   return { bg:"#fff1f2", color:"#b91c1c", border:"#fecaca" };
   return { bg:"#fafafa", color:"#555", border:"#e5e5e5" };
@@ -196,7 +213,9 @@ function RenewModal({ contract, onClose, onSuccess }) {
 
 // ─── Contract card ────────────────────────────────────────────────────────────
 function ContractCard({ contract, onRenew }) {
-  const left = daysLeft(contract.endDate);
+  const start = contractStartDate(contract);
+  const end = contractEndDate(contract);
+  const left = daysLeft(end);
   const sc = statusStyle(contract.status);
   const isExpiring = contract.status === "active" && left !== null && left <= 7;
   const canRenew = ["active","completed","expired"].includes(contract.status);
@@ -250,8 +269,8 @@ function ContractCard({ contract, onRenew }) {
       {/* Date row */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8, marginBottom:14 }}>
         {[
-          ["Start Date", formatDate(contract.startDate)],
-          ["End Date",   formatDate(contract.endDate)],
+          ["Start Date", formatDate(start)],
+          ["End Date",   formatDate(end)],
           ["Duration",   contract.contractMonths ? `${contract.contractMonths} month${contract.contractMonths>1?"s":""}` : "—"],
         ].map(([k,v]) => (
           <div key={k} style={{ background:"#fef2f2", border:"1px solid #fecaca", borderRadius:8, padding:"8px 10px" }}>
@@ -323,15 +342,15 @@ export default function UserContractsPage() {
   }, []);
 
   const filtered = useMemo(() => {
-    if (tab === "active")    return contracts.filter((c) => c.status === "active");
+    if (tab === "active")    return contracts.filter((c) => ["pending","accepted","active"].includes(c.status));
     if (tab === "completed") return contracts.filter((c) => ["completed","expired"].includes(c.status));
     return contracts;
   }, [contracts, tab]);
 
   const stats = useMemo(() => ({
-    active:    contracts.filter((c) => c.status === "active").length,
+    active:    contracts.filter((c) => ["pending","accepted","active"].includes(c.status)).length,
     completed: contracts.filter((c) => ["completed","expired"].includes(c.status)).length,
-    expiring:  contracts.filter((c) => c.status === "active" && daysLeft(c.endDate) !== null && daysLeft(c.endDate) <= 7).length,
+    expiring:  contracts.filter((c) => ["pending","accepted","active"].includes(c.status) && daysLeft(contractEndDate(c)) !== null && daysLeft(contractEndDate(c)) <= 7).length,
   }), [contracts]);
 
   function handleRenewSuccess(mode) {

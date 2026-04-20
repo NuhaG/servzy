@@ -31,6 +31,14 @@ export async function POST(req) {
       timeSlot,
       notes,
       type = "one-time",
+      amount,
+      finalAmount,
+      contractMonths,
+      contractDaysPerWeek,
+      preferredDays,
+      originalContractId,
+      renewMode,
+      advanceOnly,
       location,
       lat,
       lng,
@@ -43,6 +51,21 @@ export async function POST(req) {
         { error: "Invalid booking type" },
         { status: 400 },
       );
+    }
+
+    if (type === "contract") {
+      if (!contractMonths || Number(contractMonths) < 1) {
+        return NextResponse.json(
+          { error: "Contract duration is required" },
+          { status: 400 },
+        );
+      }
+      if (!contractDaysPerWeek || Number(contractDaysPerWeek) < 1) {
+        return NextResponse.json(
+          { error: "Contract frequency is required" },
+          { status: 400 },
+        );
+      }
     }
 
     // check service exists
@@ -94,22 +117,44 @@ export async function POST(req) {
     }
 
     // create booking
-    const amount =
+    const calculatedAmount =
       (provider.basePrice || service.price || 0) +
       (provider.bookingCharge || 0) +
       (provider.consultationFee || 0) +
       (provider.serviceFee || 0);
+
+    const resolvedStartDate =
+      type === "contract" && scheduledDate ? new Date(scheduledDate) : undefined;
+    const resolvedEndDate =
+      type === "contract" && resolvedStartDate
+        ? new Date(
+            new Date(resolvedStartDate).setMonth(
+              new Date(resolvedStartDate).getMonth() + Number(contractMonths),
+            ),
+          )
+        : undefined;
+    const resolvedAmount = amount ?? calculatedAmount;
 
     const booking = await Booking.create({
       userId: bookingUserId,
       providerId: provider._id,
       serviceId,
       scheduledDate,
+      startDate: resolvedStartDate,
+      endDate: resolvedEndDate,
       timeSlot,
       notes,
       status: "pending",
-      amount,
+      amount: resolvedAmount,
+      finalAmount: finalAmount ?? resolvedAmount,
       type,
+      contractMonths: type === "contract" ? Number(contractMonths) : undefined,
+      contractDaysPerWeek:
+        type === "contract" ? Number(contractDaysPerWeek) : undefined,
+      preferredDays: type === "contract" ? preferredDays || [] : undefined,
+      originalContractId: originalContractId || undefined,
+      renewMode: renewMode || undefined,
+      advanceOnly: Boolean(advanceOnly),
       location,
       lat,
       lng,
@@ -136,12 +181,18 @@ export async function POST(req) {
           servicePrice: service.price,
           scheduledDate: scheduledDate,
           timeSlot: timeSlot,
-          amount: amount,
+          amount: resolvedAmount,
           notes: notes,
           customerId: bookingUserId,
           customerName: customerUser?.name || "Unknown",
           customerEmail: customerUser?.email || "N/A",
           bookingId: booking._id,
+          contractMonths: type === "contract" ? Number(contractMonths) : undefined,
+          contractDaysPerWeek:
+            type === "contract" ? Number(contractDaysPerWeek) : undefined,
+          preferredDays: type === "contract" ? preferredDays || [] : undefined,
+          startDate: resolvedStartDate,
+          endDate: resolvedEndDate,
         },
       };
 
@@ -215,7 +266,7 @@ export async function GET(req) {
 
     const bookings = await Booking.find(query)
       .populate("serviceId", "title price")
-      .populate("providerId", "businessName")
+      .populate("providerId", "businessName location")
       .populate("userId", "name email")
       .sort({ createdAt: -1 });
 
