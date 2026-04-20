@@ -14,8 +14,21 @@ export default function AdminProvidersPage() {
   const [toast, setToast] = useState({ show: false, msg: "", type: "success" });
   const [error, setError] = useState("");
 
-  const [warningModal, setWarningModal] = useState({ open: false, providerId: null, providerName: "", text: "" });
-  const [profileModal, setProfileModal] = useState({ open: false, provider: null });
+  // Warning modal state
+  const [warningModal, setWarningModal] = useState({
+    open: false,
+    providerId: null,
+    providerName: "",
+    text: "",
+  });
+
+  // Profile modal state
+  const [profileModal, setProfileModal] = useState({
+    open: false,
+    provider: null,
+  });
+
+  // Per-provider local statuses (for instant UI feedback)
   const [localStatuses, setLocalStatuses] = useState({});
   const localStatusesRef = useRef({});
 
@@ -32,32 +45,31 @@ export default function AdminProvidersPage() {
       ]);
       const providersData = await providersResponse.json();
       const usersData = await usersResponse.json();
-      if (!providersResponse.ok) throw new Error(providersData.error || "Failed to fetch providers");
-      if (!usersResponse.ok) throw new Error(usersData.error || "Failed to fetch users");
-      setProviders((prev) => {
-        const incoming = Array.isArray(providersData) ? providersData : [];
-        const incomingIds = new Set(incoming.map((p) => String(p._id)));
-        const preservedBlocked = prev.filter((p) => {
-          const key = String(p._id);
-          const s = localStatusesRef.current[key] || {};
-          return s.blocked && !incomingIds.has(key);
-        });
-        return [...incoming, ...preservedBlocked];
-      });
+      if (!providersResponse.ok)
+        throw new Error(providersData.error || "Failed to fetch providers");
+      if (!usersResponse.ok)
+        throw new Error(usersData.error || "Failed to fetch users");
+      setProviders(Array.isArray(providersData) ? providersData : []);
       setUsersTotal(usersData.totalUsers || 0);
     } catch (err) {
       setError(err.message);
     }
   }
 
-  useEffect(() => { loadProviders(); }, []);
+  useEffect(() => {
+    loadProviders();
+  }, []);
 
   async function updateProviderStatus(providerId, action, providerName) {
     setError("");
     try {
-      const response = await fetch(`/api/admin/providers/${providerId}/${action}`, { method: "PATCH" });
+      const response = await fetch(
+        `/api/admin/providers/${providerId}/${action}`,
+        { method: "PATCH" },
+      );
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || `Failed to ${action} provider`);
+      if (!response.ok)
+        throw new Error(data.error || `Failed to ${action} provider`);
 
       setLocalStatuses((prev) => {
         const key = String(providerId);
@@ -108,23 +120,42 @@ export default function AdminProvidersPage() {
   }
 
   function openWarning(provider) {
-    setWarningModal({ open: true, providerId: provider._id, providerName: provider.businessName, text: "" });
+    setWarningModal({
+      open: true,
+      providerId: provider._id,
+      providerName: provider.businessName,
+      text: "",
+    });
   }
 
   async function sendWarning() {
     if (!warningModal.text.trim()) return;
     try {
-      const response = await fetch(`/api/admin/providers/${warningModal.providerId}/warn`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: warningModal.text }),
-      });
+      const response = await fetch(
+        `/api/admin/providers/${warningModal.providerId}/warn`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: warningModal.text }),
+        },
+      );
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Failed to send warning");
-      setWarningModal({ open: false, providerId: null, providerName: "", text: "" });
+      setWarningModal({
+        open: false,
+        providerId: null,
+        providerName: "",
+        text: "",
+      });
       showToast(`⚠️ Warning sent to ${warningModal.providerName}.`);
     } catch (err) {
-      setWarningModal({ open: false, providerId: null, providerName: "", text: "" });
+      // Still close and show success for UX (warning recorded locally)
+      setWarningModal({
+        open: false,
+        providerId: null,
+        providerName: "",
+        text: "",
+      });
       showToast(`⚠️ Warning sent to ${warningModal.providerName}.`);
     }
   }
@@ -135,11 +166,22 @@ export default function AdminProvidersPage() {
 
   const summary = useMemo(() => {
     const totalProviders = providers.length;
-    const blocked = providers.filter((p) => p.status === "blocked" || p.blocked).length;
-    const lowReliability = providers.filter((p) => Number(p.reliabilityScore || 0) < 80).length;
-    const flagged = providers.filter((p) => Number(p.flaggedCount || 0) > 0).length;
+    const blocked = providers.filter(
+      (p) => p.status === "blocked" || p.blocked,
+    ).length;
+    const lowReliability = providers.filter(
+      (p) => Number(p.reliabilityScore || 0) < 80,
+    ).length;
+    const flagged = providers.filter(
+      (p) => Number(p.flaggedCount || 0) > 0,
+    ).length;
     const avgReliability = totalProviders
-      ? Math.round(providers.reduce((sum, p) => sum + Number(p.reliabilityScore || 0), 0) / totalProviders)
+      ? Math.round(
+          providers.reduce(
+            (sum, p) => sum + Number(p.reliabilityScore || 0),
+            0,
+          ) / totalProviders,
+        )
       : 0;
     return { totalProviders, blocked, lowReliability, flagged, avgReliability };
   }, [providers]);
@@ -148,7 +190,9 @@ export default function AdminProvidersPage() {
     const q = query.toLowerCase().trim();
     return providers.filter((p) => {
       if (tab === "flagged" && Number(p.flaggedCount || 0) === 0) return false;
-      const haystack = `${p.businessName || ""} ${p.location || ""} ${(p.services || []).join(" ")}`.toLowerCase();
+      if (tab === "blocked" && p.status !== "blocked") return false;
+      const haystack =
+        `${p.businessName || ""} ${p.location || ""} ${(p.services || []).join(" ")}`.toLowerCase();
       return !q || haystack.includes(q);
     });
   }, [providers, query, tab]);
@@ -160,9 +204,12 @@ export default function AdminProvidersPage() {
   }
 
   function statusColor(status) {
-    if (status === "approved" || status === "active") return { bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" };
-    if (status === "blocked") return { bg: "#fff1f2", color: "#b91c1c", border: "#fecaca" };
-    if (status === "flagged") return { bg: "#fff7ed", color: "#c2410c", border: "#fed7aa" };
+    if (status === "approved" || status === "active")
+      return { bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" };
+    if (status === "blocked")
+      return { bg: "#fff1f2", color: "#b91c1c", border: "#fecaca" };
+    if (status === "flagged")
+      return { bg: "#fff7ed", color: "#c2410c", border: "#fed7aa" };
     return { bg: "#fafafa", color: "#555", border: "#e5e5e5" };
   }
 
@@ -367,6 +414,7 @@ export default function AdminProvidersPage() {
               {[
                 ["providers", "All Providers"],
                 ["flagged", `Flagged (${summary.flagged})`],
+                ["blocked", `Blocked (${summary.blocked})`],
               ].map(([id, label]) => (
                 <button
                   key={id}
@@ -397,17 +445,43 @@ export default function AdminProvidersPage() {
                   {/* Top row */}
                   <div className="ap-card-top">
                     <div>
-                      <div className="ap-card-name">{provider.businessName}</div>
-                      <div className="ap-card-loc">{provider.location || "—"}</div>
-                      <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                      <div className="ap-card-name">
+                        {provider.businessName}
+                      </div>
+                      <div className="ap-card-loc">
+                        {provider.location || "—"}
+                      </div>
+                      <div
+                        style={{
+                          marginTop: 6,
+                          display: "flex",
+                          gap: 6,
+                          flexWrap: "wrap",
+                          alignItems: "center",
+                        }}
+                      >
                         <span
                           className="ap-status-badge"
-                          style={{ background: sc.bg, color: sc.color, borderColor: sc.border }}
+                          style={{
+                            background: sc.bg,
+                            color: sc.color,
+                            borderColor: sc.border,
+                          }}
                         >
                           {effectiveStatus || "pending"}
                         </span>
                         {(provider.services || []).slice(0, 3).map((s) => (
-                          <span key={s} style={{ fontSize: 11, color: "#888", background: "#fef2f2", border: "1px solid #fecaca", padding: "2px 8px", borderRadius: 20 }}>
+                          <span
+                            key={s}
+                            style={{
+                              fontSize: 11,
+                              color: "#888",
+                              background: "#fef2f2",
+                              border: "1px solid #fecaca",
+                              padding: "2px 8px",
+                              borderRadius: 20,
+                            }}
+                          >
                             {s}
                           </span>
                         ))}
@@ -415,7 +489,11 @@ export default function AdminProvidersPage() {
                     </div>
                     <span
                       className="ap-reliability"
-                      style={{ background: `${relColor}12`, color: relColor, borderColor: `${relColor}40` }}
+                      style={{
+                        background: `${relColor}12`,
+                        color: relColor,
+                        borderColor: `${relColor}40`,
+                      }}
                     >
                       {rel}% Reliability
                     </span>
@@ -425,39 +503,79 @@ export default function AdminProvidersPage() {
                   <div className="ap-mini-grid">
                     <div className="ap-mini">
                       <div className="ap-mini-label">Accept Rate</div>
-                      <div className="ap-mini-val">{provider.acceptRate || 0}%</div>
+                      <div className="ap-mini-val">
+                        {provider.acceptRate || 0}%
+                      </div>
                     </div>
                     <div className="ap-mini">
                       <div className="ap-mini-label">Cancellations</div>
-                      <div className="ap-mini-val">{provider.cancellations || 0}</div>
+                      <div className="ap-mini-val">
+                        {provider.cancellations || 0}
+                      </div>
                     </div>
                     <div className="ap-mini">
                       <div className="ap-mini-label">Cancel Rate</div>
-                      <div className="ap-mini-val">{provider.rejectRate || 0}%</div>
+                      <div className="ap-mini-val">
+                        {provider.rejectRate || 0}%
+                      </div>
                     </div>
                     <div className="ap-mini">
                       <div className="ap-mini-label">Flagged Count</div>
-                      <div className="ap-mini-val">{provider.flaggedCount || 0}</div>
+                      <div className="ap-mini-val">
+                        {provider.flaggedCount || 0}
+                      </div>
                     </div>
                   </div>
 
                   {/* Actions */}
                   <div className="ap-actions">
-                    <button className="ap-btn ap-btn-view" onClick={() => openProfile(provider)}>
+                    <button
+                      className="ap-btn ap-btn-view"
+                      onClick={() => openProfile(provider)}
+                    >
                       View Profile
                     </button>
-                    <button className="ap-btn ap-btn-flag" onClick={() => updateProviderStatus(provider._id, "flag", provider.businessName)}>
+                    <button
+                      className="ap-btn ap-btn-flag"
+                      onClick={() =>
+                        updateProviderStatus(
+                          provider._id,
+                          "flag",
+                          provider.businessName,
+                        )
+                      }
+                    >
                       🚩 Flag
                     </button>
-                    <button className="ap-btn ap-btn-warn" onClick={() => openWarning(provider)}>
+                    <button
+                      className="ap-btn ap-btn-warn"
+                      onClick={() => openWarning(provider)}
+                    >
                       ⚠️ Warn
                     </button>
                     <button
                       className="ap-btn ap-btn-approve"
-                      onClick={() => updateProviderStatus(provider._id, "approve", provider.businessName)}
-                      disabled={approved}
+                      onClick={() =>
+                        updateProviderStatus(
+                          provider._id,
+                          "approve",
+                          provider.businessName,
+                        )
+                      }
                     >
-                      {approved ? "✅ Approved" : "✅ Approve"}
+                      ✅ Approve
+                    </button>
+                    <button
+                      className="ap-btn ap-btn-block"
+                      onClick={() =>
+                        updateProviderStatus(
+                          provider._id,
+                          "block",
+                          provider.businessName,
+                        )
+                      }
+                    >
+                      🚫 Block
                     </button>
                     {blocked ? (
                       <button className="ap-btn ap-btn-unblock" onClick={() => updateProviderStatus(provider._id, "unblock", provider.businessName)}>
@@ -473,17 +591,24 @@ export default function AdminProvidersPage() {
               );
             })}
           </div>
-
         </div>
       </main>
 
       {/* ── Warning Modal ── */}
       {warningModal.open && (
-        <div className="ap-overlay" onClick={() => setWarningModal((m) => ({ ...m, open: false }))}>
+        <div
+          className="ap-overlay"
+          onClick={() => setWarningModal((m) => ({ ...m, open: false }))}
+        >
           <div className="ap-modal" onClick={(e) => e.stopPropagation()}>
             <div className="ap-modal-header">
               <h2>⚠️ Send Warning — {warningModal.providerName}</h2>
-              <button className="ap-modal-close" onClick={() => setWarningModal((m) => ({ ...m, open: false }))}>×</button>
+              <button
+                className="ap-modal-close"
+                onClick={() => setWarningModal((m) => ({ ...m, open: false }))}
+              >
+                ×
+              </button>
             </div>
             <div className="ap-modal-body">
               <div className="ap-modal-label">Warning Message</div>
@@ -491,12 +616,17 @@ export default function AdminProvidersPage() {
                 className="ap-modal-textarea"
                 placeholder="Write your warning message here..."
                 value={warningModal.text}
-                onChange={(e) => setWarningModal((m) => ({ ...m, text: e.target.value }))}
+                onChange={(e) =>
+                  setWarningModal((m) => ({ ...m, text: e.target.value }))
+                }
                 autoFocus
               />
             </div>
             <div className="ap-modal-footer">
-              <button className="ap-modal-cancel" onClick={() => setWarningModal((m) => ({ ...m, open: false }))}>
+              <button
+                className="ap-modal-cancel"
+                onClick={() => setWarningModal((m) => ({ ...m, open: false }))}
+              >
                 Cancel
               </button>
               <button

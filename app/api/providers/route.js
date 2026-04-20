@@ -62,7 +62,7 @@ export async function GET(req) {
     const providers = await Provider.find(query)
       .populate({
         path: "userId",
-        match: { role: "provider" },
+        match: includeAll ? {} : { role: "provider" }, // Only filter by role for non-admin requests
         select: "name email role",
       })
       .sort({ createdAt: -1 })
