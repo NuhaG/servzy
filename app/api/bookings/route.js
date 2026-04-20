@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db";
 import Booking from "@/models/Booking";
 import Service from "@/models/Service";
 import Provider from "@/models/Provider";
+import User from "@/models/User";
 import { getSessionUser, hasRole } from "@/lib/rbac";
 import { ROLES } from "@/lib/roles";
 import Notification from "@/models/Notification";
@@ -85,19 +86,40 @@ export async function POST(req) {
             type
         });
 
-        // dispatch notification
+        // Get user details for notification
+        const customerUser = await User.findById(bookingUserId);
+
+        // dispatch notification to provider (service request)
         try {
-            await Notification.create({
-                userId: bookingUserId,
+            const notificationData = {
                 providerId: provider._id,
                 bookingId: booking._id,
-                title: "New Booking Started",
-                message: `A new booking has been created for "${service.title}" by the user.`,
-                type: "booking",
-                actionUrl: `/bookings/${booking._id}`,
-            });
+                title: "New Service Request 🔔",
+                message: `You have a new service request for "${service.title}". Review and accept or reject the request.`,
+                type: "service_request",
+                isRead: false,
+                actionStatus: "pending",
+                actionUrl: `/provider/bookings`,
+                metadata: {
+                    serviceId: service._id,
+                    serviceName: service.title,
+                    serviceDescription: service.description,
+                    servicePrice: service.price,
+                    scheduledDate: scheduledDate,
+                    timeSlot: timeSlot,
+                    amount: amount,
+                    notes: notes,
+                    customerId: bookingUserId,
+                    customerName: customerUser?.name || "Unknown",
+                    customerEmail: customerUser?.email || "N/A",
+                    bookingId: booking._id,
+                }
+            };
+
+            const notification = await Notification.create(notificationData);
+            console.log("[Bookings] Service request notification created:", notification._id);
         } catch (notifErr) {
-            console.error("Failed to create booking notification:", notifErr);
+            console.error("[Bookings] Failed to create notification:", notifErr.message);
         }
 
         return NextResponse.json(booking, { status: 201 });

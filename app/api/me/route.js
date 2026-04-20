@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Provider from "@/models/Provider";
 import { getSessionUser } from "@/lib/rbac";
+import { ROLES } from "@/lib/roles";
 
 export async function GET() {
   try {
@@ -37,6 +38,12 @@ export async function GET() {
         .lean();
     }
 
+    // Self-heal older provider accounts whose app role did not get updated.
+    if (provider && user.role !== ROLES.PROVIDER && user.role !== ROLES.ADMIN) {
+      user.role = ROLES.PROVIDER;
+      await user.save();
+    }
+
     return NextResponse.json(
       {
         user: {
@@ -44,9 +51,10 @@ export async function GET() {
           clerkId: user.clerkId,
           name: user.name,
           email: user.email,
-          role: user.role,
+          role: provider && user.role !== ROLES.ADMIN ? ROLES.PROVIDER : user.role,
         },
         provider,
+        hasProvider: !!provider,
       },
       { status: 200 }
     );

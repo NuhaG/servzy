@@ -21,7 +21,7 @@ export async function POST(request) {
         }
 
         const payload = await request.json();
-        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, amount, bookingId, bookingId } = payload;
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, amount, bookingId } = payload;
 
         if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
             return NextResponse.json({ error: "Missing payment details" }, { status: 400 });

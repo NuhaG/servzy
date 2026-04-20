@@ -1,33 +1,67 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 
 const notificationTypeIcons = {
   booking: "📅",
   payment: "💳",
   review: "⭐",
   warning: "⚠️",
+  service_request: "🔔",
 };
 
 const notificationTypeColors = {
-  booking: "#3b82f6", // Blue
-  payment: "#10b981", // Green
-  review: "#f59e0b", // Yellow/Amber
-  warning: "#ef4444", // Red
+  booking: "#3b82f6",
+  payment: "#10b981",
+  review: "#f59e0b",
+  warning: "#ef4444",
+  service_request: "#f59e0b",
 };
 
-export default function NotificationBell() {
+const roleNotificationHref = {
+  admin: "/admin/notifications",
+  provider: "/provider/bookings?tab=requests",
+  user: "/user/notifications",
+};
+
+export default function NotificationBell({ role = "user" }) {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
   const bellRef = useRef(null);
 
+  const destinationHref = roleNotificationHref[role] || roleNotificationHref.user;
+
+  async function loadNotifications() {
+    try {
+      const res = await fetch("/api/notifications?limit=10");
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error("Notification API error:", data.error);
+        return;
+      }
+
+      console.log("Loaded notifications:", data.notifications);
+      setNotifications(data.notifications || []);
+      setUnreadCount(data.unreadCount || 0);
+    } catch (err) {
+      console.error("Failed to load notifications:", err);
+    }
+  }
+
   useEffect(() => {
-    loadNotifications();
-    const interval = setInterval(loadNotifications, 15000);
-    return () => clearInterval(interval);
+    const initialLoad = setTimeout(() => {
+      loadNotifications();
+    }, 0);
+    const interval = setInterval(() => {
+      loadNotifications();
+    }, 15000);
+    return () => {
+      clearTimeout(initialLoad);
+      clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {
@@ -46,29 +80,12 @@ export default function NotificationBell() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  async function loadNotifications() {
-    try {
-      const res = await fetch("/api/notifications?limit=10");
-      const data = await res.json();
-      
-      if (!res.ok) {
-        console.error("Notification API error:", data.error);
-        return;
-      }
-      
-      setNotifications(data.notifications || []);
-      setUnreadCount(data.unreadCount || 0);
-    } catch (err) {
-      console.error("Failed to load notifications:", err);
-    }
-  }
-
   async function markAsRead(notificationId) {
     try {
       const res = await fetch(`/api/notifications/${notificationId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isRead: true }), // Using the new isRead property
+        body: JSON.stringify({ isRead: true }),
       });
       if (res.ok) {
         await loadNotifications();
@@ -85,7 +102,7 @@ export default function NotificationBell() {
         method: "DELETE",
       });
       if (res.ok) {
-        loadNotifications();
+        await loadNotifications();
       }
     } catch (err) {
       console.error("Failed to delete notification:", err);
@@ -218,8 +235,8 @@ export default function NotificationBell() {
               {notifications.map((notif) => (
                 <a
                   key={notif._id}
-                  href="/notifications"
-                  onClick={(e) => {
+                  href={notif.actionUrl || destinationHref}
+                  onClick={() => {
                     // Fire and forget read status update without blocking navigation!
                     if (!notif.isRead) {
                       markAsRead(notif._id);
@@ -336,7 +353,7 @@ export default function NotificationBell() {
               }}
             >
               <a
-                href="/notifications"
+                href={destinationHref}
                 onClick={() => {
                    setOpen(false);
                 }}

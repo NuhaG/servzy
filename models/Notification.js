@@ -32,7 +32,7 @@ const NotificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["booking", "payment", "review", "warning"],
+      enum: ["booking", "payment", "review", "warning", "service_request"],
       required: true,
     },
     isRead: {
@@ -42,6 +42,12 @@ const NotificationSchema = new mongoose.Schema(
     actionUrl: {
       type: String, 
       required: false,
+    },
+    // For service_request notifications, track if action is still pending
+    actionStatus: {
+      type: String,
+      enum: ["pending", "accepted", "rejected"],
+      default: "pending",
     },
     metadata: mongoose.Schema.Types.Mixed,
   },

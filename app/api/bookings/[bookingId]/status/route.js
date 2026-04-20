@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import Booking from "@/models/Booking";
 import Provider from "@/models/Provider";
+import User from "@/models/User";
+import Notification from "@/models/Notification";
 import { getSessionUser, hasRole } from "@/lib/rbac";
 import { ROLES } from "@/lib/roles";
 
@@ -70,6 +72,65 @@ export async function PATCH(req, { params }) {
 
         booking.status = status;
         await booking.save();
+
+        // Keep the provider-facing request notification in sync when handled from bookings page.
+        if (["accepted", "rejected", "cancelled", "completed"].includes(status)) {
+            const actionStatusMap = {
+                accepted: "accepted",
+                rejected: "rejected",
+            };
+
+            const providerNotificationUpdate = {
+                isRead: true,
+            };
+
+            if (actionStatusMap[status]) {
+                providerNotificationUpdate.actionStatus = actionStatusMap[status];
+            }
+
+            await Notification.updateMany(
+                {
+                    bookingId: booking._id,
+                    providerId: booking.providerId,
+                    type: "service_request",
+                },
+                { $set: providerNotificationUpdate }
+            );
+        }
+
+        // Send notification to user when status changes
+        try {
+            if (status === "accepted") {
+                // Get provider name for notification
+                const providerName = provider?.businessName || "The provider";
+                
+                await Notification.create({
+                    userId: booking.userId,
+                    bookingId: booking._id,
+                    title: "Request Accepted ✅",
+                    message: `${providerName} has accepted your service request. You can now proceed to payment.`,
+                    type: "service_request",
+                    actionStatus: "accepted",
+                    actionUrl: `/user/bookings`,
+                });
+            } else if (status === "rejected") {
+                // Get provider name for notification
+                const providerName = provider?.businessName || "The provider";
+                
+                await Notification.create({
+                    userId: booking.userId,
+                    bookingId: booking._id,
+                    title: "Request Rejected ❌",
+                    message: `${providerName} has rejected your service request.`,
+                    type: "service_request",
+                    actionStatus: "rejected",
+                    actionUrl: `/user/bookings`,
+                });
+            }
+        } catch (notifErr) {
+            console.error("Failed to create user notification:", notifErr);
+            // Don't fail the request if notification creation fails
+        }
 
         return NextResponse.json(booking, { status: 200 });
 
