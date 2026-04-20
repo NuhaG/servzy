@@ -22,11 +22,9 @@ export async function PATCH(req) {
     if (lat !== undefined && lat !== null) updateData.lat = Number(lat);
     if (lng !== undefined && lng !== null) updateData.lng = Number(lng);
 
-    const updatedUser = await User.findByIdAndUpdate(
-      user._id,
-      updateData,
-      { new: true }
-    );
+    const updatedUser = await User.findByIdAndUpdate(user._id, updateData, {
+      new: true,
+    });
 
     if (!updatedUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -37,7 +35,7 @@ export async function PATCH(req) {
     console.error("Profile update error:", error);
     return NextResponse.json(
       { error: "Failed to update profile" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

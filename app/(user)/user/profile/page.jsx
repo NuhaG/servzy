@@ -5,197 +5,197 @@ import { useRouter } from "next/navigation";
 import AppNav from "@/components/AppNav";
 
 export default function UserProfilePage() {
-  const router = useRouter();
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [showMap, setShowMap] = useState(false);
-  const mapElRef = useRef(null);
-  const mapRef = useRef(null);
+    const router = useRouter();
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
+    const [showMap, setShowMap] = useState(false);
+    const mapElRef = useRef(null);
+    const mapRef = useRef(null);
 
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    location: "",
-    lat: null,
-    lng: null,
-  });
+    const [formData, setFormData] = useState({
+        name: "",
+        email: "",
+        phone: "",
+        location: "",
+        lat: null,
+        lng: null,
+    });
 
-  useEffect(() => {
-    async function loadUser() {
-      try {
-        const response = await fetch("/api/me");
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Failed to load user");
-        if (data.user) {
-          setUser(data.user);
-          setFormData({
-            name: data.user.name || "",
-            email: data.user.email || "",
-            phone: data.user.phone || "",
-            location: data.user.location || "",
-            lat: data.user.lat || null,
-            lng: data.user.lng || null,
-          });
+    useEffect(() => {
+        async function loadUser() {
+            try {
+                const response = await fetch("/api/me");
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || "Failed to load user");
+                if (data.user) {
+                    setUser(data.user);
+                    setFormData({
+                        name: data.user.name || "",
+                        email: data.user.email || "",
+                        phone: data.user.phone || "",
+                        location: data.user.location || "",
+                        lat: data.user.lat || null,
+                        lng: data.user.lng || null,
+                    });
 
-          // Get browser location if not already set
-          if (!data.user.lat || !data.user.lng) {
-            if (navigator.geolocation) {
-              navigator.geolocation.getCurrentPosition(
-                (position) => {
-                  const { latitude, longitude } = position.coords;
-                  setFormData((prev) => ({
-                    ...prev,
-                    lat: Number(latitude.toFixed(6)),
-                    lng: Number(longitude.toFixed(6)),
-                  }));
-                },
-                (error) => {
-                  console.log("Geolocation not available:", error.message);
+                    // Get browser location if not already set
+                    if (!data.user.lat || !data.user.lng) {
+                        if (navigator.geolocation) {
+                            navigator.geolocation.getCurrentPosition(
+                                (position) => {
+                                    const { latitude, longitude } = position.coords;
+                                    setFormData((prev) => ({
+                                        ...prev,
+                                        lat: Number(latitude.toFixed(6)),
+                                        lng: Number(longitude.toFixed(6)),
+                                    }));
+                                },
+                                (error) => {
+                                    console.log("Geolocation not available:", error.message);
+                                }
+                            );
+                        }
+                    }
                 }
-              );
+            } catch (err) {
+                setError(err.message);
             }
-          }
         }
-      } catch (err) {
-        setError(err.message);
-      }
-    }
-    loadUser();
-  }, []);
+        loadUser();
+    }, []);
 
-  useEffect(() => {
-    if (!showMap) {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
-      return;
-    }
-
-    async function initMap() {
-      try {
-        if (!window.L) {
-          const cssLink = document.createElement("link");
-          cssLink.rel = "stylesheet";
-          cssLink.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-          document.head.appendChild(cssLink);
-
-          const script = document.createElement("script");
-          script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-          script.async = true;
-          script.onload = () => initMapInstance();
-          document.body.appendChild(script);
-        } else {
-          initMapInstance();
+    useEffect(() => {
+        if (!showMap) {
+            if (mapRef.current) {
+                mapRef.current.remove();
+                mapRef.current = null;
+            }
+            return;
         }
-      } catch (err) {
-        console.error("Failed to load map:", err);
-      }
-    }
 
-    function initMapInstance() {
-      if (!mapElRef.current) return;
-      
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
+        async function initMap() {
+            try {
+                if (!window.L) {
+                    const cssLink = document.createElement("link");
+                    cssLink.rel = "stylesheet";
+                    cssLink.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+                    document.head.appendChild(cssLink);
 
-      const L = window.L;
-      const defaultLat = formData.lat || 19.076;
-      const defaultLng = formData.lng || 72.8777;
-      const map = L.map(mapElRef.current).setView([defaultLat, defaultLng], 15);
-      mapRef.current = map;
+                    const script = document.createElement("script");
+                    script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+                    script.async = true;
+                    script.onload = () => initMapInstance();
+                    document.body.appendChild(script);
+                } else {
+                    initMapInstance();
+                }
+            } catch (err) {
+                console.error("Failed to load map:", err);
+            }
+        }
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: "&copy; OpenStreetMap contributors",
-      }).addTo(map);
+        function initMapInstance() {
+            if (!mapElRef.current) return;
 
-      let marker = null;
-      if (formData.lat && formData.lng) {
-        marker = L.marker([formData.lat, formData.lng])
-          .addTo(map)
-          .bindPopup("Your location")
-          .openPopup();
-      }
+            if (mapRef.current) {
+                mapRef.current.remove();
+                mapRef.current = null;
+            }
 
-      map.on("click", (e) => {
-        const { lat, lng } = e.latlng;
+            const L = window.L;
+            const defaultLat = formData.lat || 19.076;
+            const defaultLng = formData.lng || 72.8777;
+            const map = L.map(mapElRef.current).setView([defaultLat, defaultLng], 15);
+            mapRef.current = map;
+
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                maxZoom: 19,
+                attribution: "&copy; OpenStreetMap contributors",
+            }).addTo(map);
+
+            let marker = null;
+            if (formData.lat && formData.lng) {
+                marker = L.marker([formData.lat, formData.lng])
+                    .addTo(map)
+                    .bindPopup("Your location")
+                    .openPopup();
+            }
+
+            map.on("click", (e) => {
+                const { lat, lng } = e.latlng;
+                setFormData((prev) => ({
+                    ...prev,
+                    lat: Number(lat.toFixed(6)),
+                    lng: Number(lng.toFixed(6)),
+                }));
+
+                if (marker) map.removeLayer(marker);
+                marker = L.marker([lat, lng])
+                    .addTo(map)
+                    .bindPopup("Selected location")
+                    .openPopup();
+            });
+        }
+
+        initMap();
+
+        return () => {
+            if (mapRef.current) {
+                mapRef.current.remove();
+                mapRef.current = null;
+            }
+        };
+    }, [showMap]);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
         setFormData((prev) => ({
-          ...prev,
-          lat: Number(lat.toFixed(6)),
-          lng: Number(lng.toFixed(6)),
+            ...prev,
+            [name]: value,
         }));
-
-        if (marker) map.removeLayer(marker);
-        marker = L.marker([lat, lng])
-          .addTo(map)
-          .bindPopup("Selected location")
-          .openPopup();
-      });
-    }
-
-    initMap();
-
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
     };
-  }, [showMap]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError("");
+        setSuccess("");
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setSuccess("");
+        try {
+            const response = await fetch("/api/users/profile", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(formData),
+            });
 
-    try {
-      const response = await fetch("/api/users/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || "Failed to update profile");
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to update profile");
+            setSuccess("Profile updated successfully!");
+            setUser(data.user);
+            setTimeout(() => setSuccess(""), 3000);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-      setSuccess("Profile updated successfully!");
-      setUser(data.user);
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    if (!user)
+        return (
+            <>
+                <AppNav />
+                <div style={{ padding: "40px", textAlign: "center", color: "#888" }}>
+                    Loading...
+                </div>
+            </>
+        );
 
-  if (!user)
     return (
-      <>
-        <AppNav />
-        <div style={{ padding: "40px", textAlign: "center", color: "#888" }}>
-          Loading...
-        </div>
-      </>
-    );
-
-  return (
-    <>
-      <style>{`
+        <>
+            <style>{`
         .up-page { min-height: 100vh; background: #fef9f3; }
         .up-shell { max-width: 600px; margin: 0 auto; padding: 36px 20px 64px; }
 
@@ -460,139 +460,139 @@ export default function UserProfilePage() {
         }
       `}</style>
 
-      <main className="up-page">
-        <AppNav />
-        <div className="up-shell">
-          {/* Header */}
-          <div className="up-header">
-            <p className="up-eyebrow">Account</p>
-            <h1 className="up-title">Edit Profile</h1>
-          </div>
+            <main className="up-page">
+                <AppNav />
+                <div className="up-shell">
+                    {/* Header */}
+                    <div className="up-header">
+                        <p className="up-eyebrow">Account</p>
+                        <h1 className="up-title">Edit Profile</h1>
+                    </div>
 
-          {/* Alerts */}
-          {error && (
-            <div className="up-alert up-error">
-              <span>❌</span>
-              <span>{error}</span>
-            </div>
-          )}
-          {success && (
-            <div className="up-alert up-success">
-              <span>✅</span>
-              <span>{success}</span>
-            </div>
-          )}
+                    {/* Alerts */}
+                    {error && (
+                        <div className="up-alert up-error">
+                            <span>❌</span>
+                            <span>{error}</span>
+                        </div>
+                    )}
+                    {success && (
+                        <div className="up-alert up-success">
+                            <span>✅</span>
+                            <span>{success}</span>
+                        </div>
+                    )}
 
-          {/* Form */}
-          <form className="up-form" onSubmit={handleSubmit}>
-            <div className="up-form-group">
-              <label className="up-label">Full Name</label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                className="up-input"
-                placeholder="Your name"
-              />
-            </div>
+                    {/* Form */}
+                    <form className="up-form" onSubmit={handleSubmit}>
+                        <div className="up-form-group">
+                            <label className="up-label">Full Name</label>
+                            <input
+                                type="text"
+                                name="name"
+                                value={formData.name}
+                                onChange={handleChange}
+                                className="up-input"
+                                placeholder="Your name"
+                            />
+                        </div>
 
-            <div className="up-form-group">
-              <label className="up-label">Email</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                disabled
-                className="up-input"
-              />
-            </div>
+                        <div className="up-form-group">
+                            <label className="up-label">Email</label>
+                            <input
+                                type="email"
+                                name="email"
+                                value={formData.email}
+                                onChange={handleChange}
+                                disabled
+                                className="up-input"
+                            />
+                        </div>
 
-            <div className="up-form-group">
-              <label className="up-label">Phone</label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                className="up-input"
-                placeholder="Your phone number"
-              />
-            </div>
+                        <div className="up-form-group">
+                            <label className="up-label">Phone</label>
+                            <input
+                                type="tel"
+                                name="phone"
+                                value={formData.phone}
+                                onChange={handleChange}
+                                className="up-input"
+                                placeholder="Your phone number"
+                            />
+                        </div>
 
-            <div className="up-form-group">
-              <label className="up-label">Location</label>
-              <input
-                type="text"
-                name="location"
-                value={formData.location}
-                onChange={handleChange}
-                className="up-input"
-                placeholder="Your address or area"
-              />
-              <div className="up-location-container">
-                <div className="up-location-display">
-                  {formData.lat && formData.lng
-                    ? `📍 ${formData.lat.toFixed(4)}, ${formData.lng.toFixed(4)}`
-                    : "No location set"}
+                        <div className="up-form-group">
+                            <label className="up-label">Location</label>
+                            <input
+                                type="text"
+                                name="location"
+                                value={formData.location}
+                                onChange={handleChange}
+                                className="up-input"
+                                placeholder="Your address or area"
+                            />
+                            <div className="up-location-container">
+                                <div className="up-location-display">
+                                    {formData.lat && formData.lng
+                                        ? `📍 ${formData.lat.toFixed(4)}, ${formData.lng.toFixed(4)}`
+                                        : "No location set"}
+                                </div>
+                                <button
+                                    type="button"
+                                    className="up-btn-map"
+                                    onClick={() => setShowMap(!showMap)}
+                                >
+                                    {showMap ? "Hide Map" : "Set on Map"}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="up-actions">
+                            <button type="submit" className="up-btn up-btn-submit" disabled={loading}>
+                                {loading ? "Saving..." : "Save Changes"}
+                            </button>
+                            <button
+                                type="button"
+                                className="up-btn up-btn-cancel"
+                                onClick={() => router.back()}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
                 </div>
-                <button
-                  type="button"
-                  className="up-btn-map"
-                  onClick={() => setShowMap(!showMap)}
-                >
-                  {showMap ? "Hide Map" : "Set on Map"}
-                </button>
-              </div>
-            </div>
+            </main>
 
-            <div className="up-actions">
-              <button type="submit" className="up-btn up-btn-submit" disabled={loading}>
-                {loading ? "Saving..." : "Save Changes"}
-              </button>
-              <button
-                type="button"
-                className="up-btn up-btn-cancel"
-                onClick={() => router.back()}
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      </main>
-
-      {/* Map Modal */}
-      {showMap && (
-        <div className="up-map-overlay" onClick={() => setShowMap(false)}>
-          <div className="up-map-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="up-map-header">
-              <h3 className="up-map-title">📍 Set Your Location</h3>
-              <p className="up-map-subtitle">
-                Click on the map to select your location
-              </p>
-            </div>
-            <div className="up-map-body">
-              <div id="up-location-map" ref={mapElRef}></div>
-            </div>
-            <div className="up-map-footer">
-              <button
-                className="up-btn-close"
-                onClick={() => setShowMap(false)}
-              >
-                Close
-              </button>
-              <button
-                className="up-btn-confirm"
-                onClick={() => setShowMap(false)}
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
+            {/* Map Modal */}
+            {showMap && (
+                <div className="up-map-overlay" onClick={() => setShowMap(false)}>
+                    <div className="up-map-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="up-map-header">
+                            <h3 className="up-map-title">📍 Set Your Location</h3>
+                            <p className="up-map-subtitle">
+                                Click on the map to select your location
+                            </p>
+                        </div>
+                        <div className="up-map-body">
+                            <div id="up-location-map" ref={mapElRef}></div>
+                        </div>
+                        <div className="up-map-footer">
+                            <button
+                                className="up-btn-close"
+                                onClick={() => setShowMap(false)}
+                            >
+                                Close
+                            </button>
+                            <button
+                                className="up-btn-confirm"
+                                onClick={() => setShowMap(false)}
+                            >
+                                Done
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
+    );
 }

@@ -21,7 +21,10 @@ export async function PATCH(req, { params }) {
 
     const provider = await Provider.findById(id);
     if (!provider) {
-      return NextResponse.json({ error: "Provider not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Provider not found" },
+        { status: 404 },
+      );
     }
 
     provider.flaggedCount = Number(provider.flaggedCount || 0) + 1;
@@ -58,10 +61,13 @@ export async function PATCH(req, { params }) {
 
     return NextResponse.json(
       { message: "Provider flagged for review", provider },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Failed to flag provider" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to flag provider" },
+      { status: 500 },
+    );
   }
 }

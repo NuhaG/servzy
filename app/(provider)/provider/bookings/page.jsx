@@ -110,7 +110,7 @@ export default function ProviderBookingsPage() {
 
     function initMapInstance() {
       if (!mapElRef.current) return;
-      
+
       const L = window.L;
       const booking = locationModal.booking;
       const customerLat = booking.lat;
@@ -459,7 +459,7 @@ export default function ProviderBookingsPage() {
             filtered.map((booking) => {
               const sc = statusStyle(booking.status);
               const pc = paymentStatusStyle(booking.paymentStatus);
-              
+
               return (
                 <div key={booking._id} className="pb-card">
                   <div className="pb-card-top">

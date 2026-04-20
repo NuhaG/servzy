@@ -80,42 +80,42 @@ export default function AppNav() {
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
           {isSignedIn ? (
             <>
-            {roleLinks.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                style={{
-                  textDecoration: "none",
-                  border: "1px solid rgba(201,75,44,0.22)",
-                  color: "#1a0a00",
-                  borderRadius: 10,
-                  padding: "8px 12px",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  background: "#fff",
-                }}
-              >
-                {item.label}
-              </Link>
-            ))}
-            {role !== "admin" && <NotificationBell role={role} />}
-            <div style={{ marginLeft: 6 }}>
-              <UserButton afterSignOutUrl="/" />
-            </div>
+              {roleLinks.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  style={{
+                    textDecoration: "none",
+                    border: "1px solid rgba(201,75,44,0.22)",
+                    color: "#1a0a00",
+                    borderRadius: 10,
+                    padding: "8px 12px",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    background: "#fff",
+                  }}
+                >
+                  {item.label}
+                </Link>
+              ))}
+              {role !== "admin" && <NotificationBell role={role} />}
+              <div style={{ marginLeft: 6 }}>
+                <UserButton afterSignOutUrl="/" />
+              </div>
             </>
           ) : null}
 
           {!isSignedIn ? (
             <>
-            <Link href="/services" style={{ textDecoration: "none", border: "1px solid rgba(201,75,44,0.22)", color: "#1a0a00", borderRadius: 10, padding: "8px 12px", fontSize: 13, fontWeight: 600, background: "#fff" }}>
-              Find Services
-            </Link>
-            <Link href="/sign-in" style={{ textDecoration: "none", color: "#c94b2c", padding: "8px 12px", fontSize: 13, fontWeight: 700 }}>
-              Sign In
-            </Link>
-            <Link href="/sign-up" style={{ textDecoration: "none", borderRadius: 10, padding: "8px 12px", fontSize: 13, fontWeight: 700, color: "#fff", background: "linear-gradient(135deg,#c94b2c,#dc143c)" }}>
-              Sign Up
-            </Link>
+              <Link href="/services" style={{ textDecoration: "none", border: "1px solid rgba(201,75,44,0.22)", color: "#1a0a00", borderRadius: 10, padding: "8px 12px", fontSize: 13, fontWeight: 600, background: "#fff" }}>
+                Find Services
+              </Link>
+              <Link href="/sign-in" style={{ textDecoration: "none", color: "#c94b2c", padding: "8px 12px", fontSize: 13, fontWeight: 700 }}>
+                Sign In
+              </Link>
+              <Link href="/sign-up" style={{ textDecoration: "none", borderRadius: 10, padding: "8px 12px", fontSize: 13, fontWeight: 700, color: "#fff", background: "linear-gradient(135deg,#c94b2c,#dc143c)" }}>
+                Sign Up
+              </Link>
             </>
           ) : null}
         </div>

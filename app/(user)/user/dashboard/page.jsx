@@ -39,7 +39,7 @@ export default function UserDashboardPage() {
             const contractBookings = Array.isArray(contractData) ? contractData.filter((item) => item.type === "contract") : [];
             setActiveContracts(contractBookings.filter((c) => c.status === "active").length);
           }
-        } catch (_) {}
+        } catch (_) { }
       } catch (err) {
         setError(err.message);
       }
@@ -53,10 +53,10 @@ export default function UserDashboardPage() {
   }
 
   const navLinks = [
-    { href: "/services",        label: "Browse Services",  desc: "Explore available services near you",    icon: "🔍" },
-    { href: "/user/bookings",   label: "Manage Bookings",  desc: "View and track your booking history",    icon: "📅" },
-    { href: "/user/reviews",    label: "Manage Reviews",   desc: "See and edit reviews you've left",       icon: "⭐" },
-    { href: "/user/complaints", label: "File Complaint",   desc: "Report an issue with a service",         icon: "📋" },
+    { href: "/services", label: "Browse Services", desc: "Explore available services near you", icon: "🔍" },
+    { href: "/user/bookings", label: "Manage Bookings", desc: "View and track your booking history", icon: "📅" },
+    { href: "/user/reviews", label: "Manage Reviews", desc: "See and edit reviews you've left", icon: "⭐" },
+    { href: "/user/complaints", label: "File Complaint", desc: "Report an issue with a service", icon: "📋" },
     {
       href: "/user/contracts",
       label: "My Contracts",
@@ -65,7 +65,7 @@ export default function UserDashboardPage() {
       highlight: activeContracts > 0,
       badge: activeContracts > 0 ? `${activeContracts} active` : null,
     },
-    { href: "/user/profile",    label: "Edit Profile",     desc: "Update your details and location",        icon: "✏️" },
+    { href: "/user/profile", label: "Edit Profile", desc: "Update your details and location", icon: "✏️" },
   ];
 
   return (
@@ -113,7 +113,7 @@ export default function UserDashboardPage() {
         <AppNav />
         <div className="ud-shell">
           <div className="ud-header">
-            <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <p className="ud-eyebrow">User</p>
               <h1 className="ud-title">Dashboard</h1>
               {user ? (<><p className="ud-name">{user.name}</p><p className="ud-email">{user.email}</p></>) : !error ? (<span className="ud-loading">Loading account...</span>) : null}
