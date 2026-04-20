@@ -65,6 +65,7 @@ export default function UserDashboardPage() {
       highlight: activeContracts > 0,
       badge: activeContracts > 0 ? `${activeContracts} active` : null,
     },
+    { href: "/user/profile",    label: "Edit Profile",     desc: "Update your details and location",        icon: "✏️" },
   ];
 
   return (

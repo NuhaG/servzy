@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import AppNav from "@/components/AppNav";
 
 export default function ProviderBookingsPage() {
@@ -11,9 +11,9 @@ export default function ProviderBookingsPage() {
   const [tab, setTab] = useState("requests");
   const [error, setError] = useState("");
   const [toast, setToast] = useState({ show: false, msg: "", type: "success" });
-
-  // Payment confirmation modal
-  const [payModal, setPayModal] = useState({ open: false, booking: null });
+  const [locationModal, setLocationModal] = useState({ open: false, booking: null });
+  const mapElRef = useRef(null);
+  const mapRef = useRef(null);
 
   function showToast(msg, type = "success") {
     setToast({ show: true, msg, type });
@@ -67,21 +67,89 @@ export default function ProviderBookingsPage() {
     }
   }
 
-  // Called when "Mark Completed" is clicked — show payment modal first
-  function openPayModal(booking) {
-    setPayModal({ open: true, booking });
-  }
+  const openLocationModal = (booking) => {
+    setLocationModal({ open: true, booking });
+  };
 
-  async function confirmComplete() {
-    const booking = payModal.booking;
-    setPayModal({ open: false, booking: null });
-    const ok = await updateStatus(booking._id, "completed");
-    if (ok) {
-      showToast(
-        `✅ Booking completed! Payment of Rs ${booking.amount || 0} received from ${booking.userId?.name || "customer"}.`
-      );
+  useEffect(() => {
+    if (!locationModal.open || !locationModal.booking) {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+      return;
     }
-  }
+
+    async function initMap() {
+      try {
+        // Clean up old map instance
+        if (mapRef.current) {
+          mapRef.current.remove();
+          mapRef.current = null;
+        }
+
+        // Load Leaflet if needed
+        if (!window.L) {
+          const cssLink = document.createElement("link");
+          cssLink.rel = "stylesheet";
+          cssLink.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+          document.head.appendChild(cssLink);
+
+          const script = document.createElement("script");
+          script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+          script.async = true;
+          script.onload = () => initMapInstance();
+          document.body.appendChild(script);
+        } else {
+          initMapInstance();
+        }
+      } catch (err) {
+        console.error("Failed to load map:", err);
+      }
+    }
+
+    function initMapInstance() {
+      if (!mapElRef.current) return;
+      
+      const L = window.L;
+      const booking = locationModal.booking;
+      const customerLat = booking.lat;
+      const customerLng = booking.lng;
+
+      if (!customerLat || !customerLng) {
+        console.log("No coordinates available");
+        return;
+      }
+
+      // Ensure previous map instance is destroyed
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+
+      const map = L.map(mapElRef.current).setView([customerLat, customerLng], 15);
+      mapRef.current = map;
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors",
+      }).addTo(map);
+
+      L.marker([customerLat, customerLng])
+        .bindPopup(`<b>${booking.userId?.name || "Customer"}</b><br>${booking.location || "Location"}`)
+        .addTo(map)
+        .openPopup();
+    }
+
+    initMap();
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, [locationModal.open, locationModal.booking?.lat, locationModal.booking?.lng]);
 
   function statusStyle(status) {
     if (status === "accepted") return { bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" };
@@ -89,6 +157,13 @@ export default function ProviderBookingsPage() {
     if (status === "pending") return { bg: "#fefce8", color: "#854d0e", border: "#fde68a" };
     if (status === "rejected" || status === "cancelled") return { bg: "#fff1f2", color: "#b91c1c", border: "#fecaca" };
     return { bg: "#fafafa", color: "#555", border: "#e5e5e5" };
+  }
+
+  function paymentStatusStyle(status) {
+    if (status === "paid") return { bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0", label: "✅ Paid" };
+    if (status === "pending") return { bg: "#fefce8", color: "#854d0e", border: "#fde68a", label: "⏳ Awaiting Payment" };
+    if (status === "failed") return { bg: "#fff1f2", color: "#b91c1c", border: "#fecaca", label: "❌ Failed" };
+    return { bg: "#fafafa", color: "#555", border: "#e5e5e5", label: "—" };
   }
 
   const filtered = useMemo(() => {
@@ -126,7 +201,7 @@ export default function ProviderBookingsPage() {
     <>
       <style>{`
         .pb-page { min-height: 100vh; background: #fef2f2; }
-        .pb-shell { max-width: 920px; margin: 0 auto; padding: 36px 20px 64px; }
+        .pb-shell { max-width: 1000px; margin: 0 auto; padding: 36px 20px 64px; }
 
         /* Header */
         .pb-header {
@@ -181,44 +256,120 @@ export default function ProviderBookingsPage() {
           padding: 18px 20px; margin-bottom: 10px; transition: box-shadow 0.15s;
         }
         .pb-card:hover { box-shadow: 0 2px 12px rgba(185,28,28,0.07); }
+        
         .pb-card-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+        .pb-service-info {flex: 1;}
         .pb-customer { font-size: 15px; font-weight: 700; color: #111; margin-bottom: 2px; }
         .pb-service { font-size: 12px; color: #888; }
         .pb-time { font-size: 12px; color: #888; margin-top: 2px; }
+        
+        .pb-right-section { text-align: right; flex-shrink: 0; }
         .pb-amount { font-size: 24px; font-weight: 800; color: #b91c1c; letter-spacing: -0.03em; line-height: 1; }
         .pb-status-pill { font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 20px; border: 1px solid; margin-top: 5px; display: inline-block; text-transform: capitalize; }
+        .pb-payment-status { font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 20px; border: 1px solid; margin-top: 5px; display: inline-block; }
+
+        /* Location Badge */
+        .pb-location-badge {
+          font-size: 12px;
+          font-weight: 600;
+          padding: 4px 12px;
+          border-radius: 20px;
+          background: #e0f2fe;
+          color: #0369a1;
+          border: 1px solid #bae6fd;
+          cursor: pointer;
+          transition: all 0.15s;
+          margin-top: 8px;
+          display: inline-block;
+        }
+        .pb-location-badge:hover {
+          background: #bae6fd;
+          transform: scale(1.05);
+        }
+
+        /* Location Modal */
+        .pb-location-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.4);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 200;
+          padding: 16px;
+        }
+        .pb-location-modal {
+          background: #fff;
+          border-radius: 14px;
+          border: 1px solid #fecaca;
+          width: 100%;
+          max-width: 600px;
+          max-height: 80vh;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+        .pb-location-header {
+          padding: 20px 22px;
+          border-bottom: 1px solid #fef2f2;
+          border-left: 4px solid #0369a1;
+        }
+        .pb-location-title {
+          font-size: 16px;
+          font-weight: 700;
+          color: #111;
+          margin: 0 0 3px;
+        }
+        .pb-location-subtitle {
+          font-size: 13px;
+          color: #888;
+        }
+        .pb-location-body {
+          flex: 1;
+          overflow: hidden;
+          min-height: 400px;
+        }
+        #pb-location-map {
+          width: 100%;
+          height: 100%;
+          min-height: 400px;
+        }
+        .pb-location-footer {
+          padding: 14px 22px;
+          border-top: 1px solid #fef2f2;
+          display: flex;
+          justify-content: flex-end;
+        }
+        .pb-close-btn {
+          padding: 8px 18px;
+          border-radius: 8px;
+          border: 1px solid #e5e5e5;
+          background: #fff;
+          color: #555;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .pb-close-btn:hover {
+          border-color: #ccc;
+          background: #f9f9f9;
+        }
 
         /* Actions */
         .pb-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; padding-top: 12px; border-top: 1px solid #fef2f2; }
         .pb-btn { padding: 7px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.15s; white-space: nowrap; }
+        .pb-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .pb-btn-accept { background: #7f1d1d; color: #fff; border-color: #7f1d1d; }
-        .pb-btn-accept:hover { background: #991b1b; }
+        .pb-btn-accept:hover:not(:disabled) { background: #991b1b; }
         .pb-btn-complete { background: #15803d; color: #fff; border-color: #15803d; }
-        .pb-btn-complete:hover { background: #166534; }
+        .pb-btn-complete:hover:not(:disabled) { background: #166534; }
         .pb-btn-reject { background: #fff1f2; color: #b91c1c; border-color: #fecaca; }
         .pb-btn-reject:hover { background: #ffe4e6; }
         .pb-btn-cancel { background: #fff1f2; color: #b91c1c; border-color: #fecaca; }
         .pb-btn-cancel:hover { background: #ffe4e6; }
 
         .pb-empty { background: #fff; border: 1px solid #fecaca; border-radius: 12px; padding: 36px; text-align: center; font-size: 13px; color: #aaa; }
-
-        /* ── Payment Modal ── */
-        .pb-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
-        .pb-modal { background: #fff; border-radius: 14px; border: 1px solid #fecaca; width: 100%; max-width: 400px; overflow: hidden; }
-        .pb-modal-head { padding: 20px 22px 16px; border-bottom: 1px solid #fef2f2; border-left: 4px solid #15803d; }
-        .pb-modal-icon { font-size: 32px; margin-bottom: 8px; }
-        .pb-modal-title { font-size: 16px; font-weight: 700; color: #111; margin: 0 0 3px; }
-        .pb-modal-sub { font-size: 13px; color: #888; }
-        .pb-modal-body { padding: 20px 22px; }
-        .pb-pay-amount { font-size: 36px; font-weight: 800; color: #15803d; letter-spacing: -0.04em; line-height: 1; margin-bottom: 4px; }
-        .pb-pay-label { font-size: 13px; color: #888; }
-        .pb-pay-from { font-size: 13px; color: #555; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f0fdf4; }
-        .pb-pay-from strong { color: #111; font-weight: 600; }
-        .pb-modal-foot { padding: 14px 22px; border-top: 1px solid #fef2f2; display: flex; gap: 8px; justify-content: flex-end; }
-        .pb-modal-cancel { padding: 8px 18px; border-radius: 8px; border: 1px solid #e5e5e5; background: #fff; color: #555; font-size: 13px; font-weight: 600; cursor: pointer; }
-        .pb-modal-cancel:hover { border-color: #ccc; }
-        .pb-modal-confirm { padding: 8px 20px; border-radius: 8px; border: none; background: #15803d; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; transition: background 0.15s; }
-        .pb-modal-confirm:hover { background: #166534; }
 
         /* Toast */
         .pb-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(12px); background: #1a1a1a; color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 500; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.2s, transform 0.2s; z-index: 200; border-left: 3px solid #15803d; max-width: 90vw; }
@@ -307,10 +458,12 @@ export default function ProviderBookingsPage() {
           ) : (
             filtered.map((booking) => {
               const sc = statusStyle(booking.status);
+              const pc = paymentStatusStyle(booking.paymentStatus);
+              
               return (
                 <div key={booking._id} className="pb-card">
                   <div className="pb-card-top">
-                    <div>
+                    <div className="pb-service-info">
                       <div className="pb-customer">{booking.userId?.name || "Customer"}</div>
                       <div className="pb-service">{booking.serviceId?.title || "Service"}</div>
                       <div className="pb-time">
@@ -320,7 +473,7 @@ export default function ProviderBookingsPage() {
                         · {booking.timeSlot || ""}
                       </div>
                     </div>
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <div className="pb-right-section">
                       <div className="pb-amount">Rs {(booking.amount || 0).toLocaleString()}</div>
                       <span
                         className="pb-status-pill"
@@ -328,8 +481,35 @@ export default function ProviderBookingsPage() {
                       >
                         {booking.status}
                       </span>
+                      <div>
+                        <span
+                          className="pb-payment-status"
+                          style={{ background: pc.bg, color: pc.color, borderColor: pc.border, marginLeft: "4px" }}
+                        >
+                          {pc.label}
+                        </span>
+                      </div>
                     </div>
                   </div>
+
+                  {/* User Details Card */}
+                  {booking.userId && (
+                    <div style={{ marginTop: "8px" }}>
+                      <button
+                        className="pb-location-badge"
+                        onClick={() => {
+                          if (!booking.lat || !booking.lng) {
+                            showToast("No location set for this booking", "error");
+                          } else {
+                            openLocationModal(booking);
+                          }
+                        }}
+                        title={booking.location || "View location"}
+                      >
+                        📍 {booking.location || "View Location"}
+                      </button>
+                    </div>
+                  )}
 
                   {/* Pending actions */}
                   {booking.status === "pending" && (
@@ -362,7 +542,13 @@ export default function ProviderBookingsPage() {
                     <div className="pb-actions">
                       <button
                         className="pb-btn pb-btn-complete"
-                        onClick={() => openPayModal(booking)}
+                        disabled={booking.paymentStatus !== "paid"}
+                        title={booking.paymentStatus !== "paid" ? "Payment must be verified first" : "Mark booking as completed"}
+                        onClick={() => {
+                          updateStatus(booking._id, "completed").then((ok) => {
+                            if (ok) showToast(`✅ Booking completed for ${booking.userId?.name || "customer"}.`);
+                          });
+                        }}
                       >
                         ✓ Mark Completed
                       </button>
@@ -386,29 +572,22 @@ export default function ProviderBookingsPage() {
         </div>
       </main>
 
-      {/* ── Payment Confirmation Modal ── */}
-      {payModal.open && (
-        <div className="pb-overlay" onClick={() => setPayModal({ open: false, booking: null })}>
-          <div className="pb-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="pb-modal-head">
-              <div className="pb-modal-icon">💰</div>
-              <div className="pb-modal-title">Confirm Payment Received</div>
-              <div className="pb-modal-sub">Mark this booking as completed once payment is confirmed.</div>
+      {/* ── Location Modal ── */}
+      {locationModal.open && locationModal.booking?.lat && (
+        <div className="pb-location-overlay" onClick={() => setLocationModal({ open: false, booking: null })}>
+          <div className="pb-location-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="pb-location-header">
+              <h3 className="pb-location-title">📍 Service Location</h3>
+              <p className="pb-location-subtitle">
+                {locationModal.booking?.userId?.name} · {locationModal.booking?.location}
+              </p>
             </div>
-            <div className="pb-modal-body">
-              <div className="pb-pay-amount">Rs {(payModal.booking?.amount || 0).toLocaleString()}</div>
-              <div className="pb-pay-label">Total amount for this booking</div>
-              <div className="pb-pay-from">
-                Payment from <strong>{payModal.booking?.userId?.name || "customer"}</strong>{" "}
-                for <strong>{payModal.booking?.serviceId?.title || "service"}</strong>
-              </div>
+            <div className="pb-location-body">
+              <div id="pb-location-map" ref={mapElRef}></div>
             </div>
-            <div className="pb-modal-foot">
-              <button className="pb-modal-cancel" onClick={() => setPayModal({ open: false, booking: null })}>
-                Not Yet
-              </button>
-              <button className="pb-modal-confirm" onClick={confirmComplete}>
-                ✓ Payment Received
+            <div className="pb-location-footer">
+              <button className="pb-close-btn" onClick={() => setLocationModal({ open: false, booking: null })}>
+                Close
               </button>
             </div>
           </div>

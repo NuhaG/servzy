@@ -284,6 +284,222 @@ function MockPaymentModal({ booking, total, onSuccess, onFailure, onCancel }) {
   );
 }
 
+// ─── Location Picker Component ────────────────────────────────────────────────
+function LocationPicker({ location, lat, lng, onChange }) {
+  const [showMap, setShowMap] = useState(false);
+  const mapElRef = useRef(null);
+  const mapRef = useRef(null);
+
+  useEffect(() => {
+    if (!showMap) {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+      return;
+    }
+
+    async function initMap() {
+      try {
+        if (!window.L) {
+          const cssLink = document.createElement("link");
+          cssLink.rel = "stylesheet";
+          cssLink.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+          document.head.appendChild(cssLink);
+
+          const script = document.createElement("script");
+          script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+          script.async = true;
+          script.onload = () => initMapInstance();
+          document.body.appendChild(script);
+        } else {
+          initMapInstance();
+        }
+      } catch (err) {
+        console.error("Failed to load map:", err);
+      }
+    }
+
+    function initMapInstance() {
+      if (!mapElRef.current) return;
+
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+
+      const L = window.L;
+      const defaultLat = lat || 19.076;
+      const defaultLng = lng || 72.8777;
+      const map = L.map(mapElRef.current).setView([defaultLat, defaultLng], 15);
+      mapRef.current = map;
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors",
+      }).addTo(map);
+
+      let marker = null;
+      if (lat && lng) {
+        marker = L.marker([lat, lng])
+          .addTo(map)
+          .bindPopup("Selected location")
+          .openPopup();
+      }
+
+      map.on("click", (e) => {
+        const { lat: newLat, lng: newLng } = e.latlng;
+        onChange({
+          lat: Number(newLat.toFixed(6)),
+          lng: Number(newLng.toFixed(6)),
+        });
+
+        if (marker) map.removeLayer(marker);
+        marker = L.marker([newLat, newLng])
+          .addTo(map)
+          .bindPopup("Selected location")
+          .openPopup();
+      });
+    }
+
+    initMap();
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, [showMap, lat, lng]);
+
+  return (
+    <div>
+      <div style={{ marginBottom: 12 }}>
+        <input
+          type="text"
+          placeholder="Enter address or location description"
+          value={location}
+          onChange={(e) => onChange({ location: e.target.value })}
+          style={{
+            width: "100%",
+            padding: "10px 13px",
+            border: "1px solid #fecaca",
+            borderRadius: 10,
+            fontSize: 13,
+            color: "#111",
+            background: "#fef2f2",
+            outline: "none",
+            marginBottom: 8
+          }}
+        />
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{
+            flex: 1,
+            background: "#f9f9f9",
+            padding: "8px 12px",
+            borderRadius: 6,
+            border: "1px solid #e5e5e5",
+            fontSize: 12,
+            color: "#555"
+          }}>
+            {lat && lng ? `📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}` : "No coordinates set"}
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowMap(!showMap)}
+            style={{
+              padding: "8px 16px",
+              background: "#0369a1",
+              color: "#fff",
+              border: "none",
+              borderRadius: 6,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: "pointer",
+              transition: "all 0.15s"
+            }}
+          >
+            {showMap ? "Hide Map" : "Set on Map"}
+          </button>
+        </div>
+      </div>
+
+      {showMap && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.4)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 100,
+          padding: 16
+        }}>
+          <div style={{
+            background: "#fff",
+            borderRadius: 14,
+            border: "1px solid #fecaca",
+            width: "100%",
+            maxWidth: 700,
+            maxHeight: "80vh",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden"
+          }}>
+            <div style={{
+              padding: "20px 22px",
+              borderBottom: "1px solid #fef2f2",
+              borderLeft: "4px solid #0369a1"
+            }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#111", margin: "0 0 3px" }}>
+                📍 Set Service Location
+              </h3>
+              <p style={{ fontSize: 13, color: "#888" }}>
+                Click on the map to select where you want the service performed
+              </p>
+            </div>
+            <div style={{
+              flex: 1,
+              overflow: "hidden",
+              minHeight: 400
+            }}>
+              <div id="location-map" ref={mapElRef} style={{
+                width: "100%",
+                height: "100%",
+                minHeight: 400
+              }}></div>
+            </div>
+            <div style={{
+              padding: "14px 22px",
+              borderTop: "1px solid #fef2f2",
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: 8
+            }}>
+              <button
+                onClick={() => setShowMap(false)}
+                style={{
+                  padding: "8px 18px",
+                  borderRadius: 8,
+                  border: "1px solid #e5e5e5",
+                  background: "#fff",
+                  color: "#555",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  transition: "all 0.15s"
+                }}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 function BookingPageContent() {
   const router = useRouter();
@@ -293,10 +509,12 @@ function BookingPageContent() {
 
   const [provider, setProvider] = useState(null);
   const [currentRole, setCurrentRole] = useState("");
+  const [meData, setMeData] = useState(null);
   const [form, setForm] = useState({
     serviceId: "", scheduledDate: "", timeSlot: "", type: "one-time",
     contractMonths: 3, contractDays: 3, selectedDays: ["Mon", "Wed", "Fri"],
     notes: "", advanceOnly: false,
+    location: "", lat: null, lng: null, useProfileLocation: true,
   });
   const [createdBooking, setCreatedBooking] = useState(null);
   const [showPayModal, setShowPayModal] = useState(false);
@@ -317,7 +535,10 @@ function BookingPageContent() {
       form.type !== createdBooking.type ||
       form.scheduledDate !== bookingDate ||
       form.timeSlot !== (createdBooking.timeSlot || "") ||
-      form.notes !== (createdBooking.notes || "")
+      form.notes !== (createdBooking.notes || "") ||
+      form.location !== (createdBooking.location || "") ||
+      form.lat !== createdBooking.lat ||
+      form.lng !== createdBooking.lng
     );
   }, [createdBooking, form]);
 
@@ -328,8 +549,14 @@ function BookingPageContent() {
       if (!form.contractDays || form.contractDays < 1) return false;
       if (!form.selectedDays || !form.selectedDays.length) return false;
     }
+    // Check location
+    if (form.useProfileLocation) {
+      if (!meData?.user?.lat || !meData?.user?.lng) return false;
+    } else {
+      if (!form.lat || !form.lng) return false;
+    }
     return true;
-  }, [form]);
+  }, [form, meData]);
 
   const isRequestButtonDisabled = submitting || !isFormComplete || (createdBooking && !hasBookingDetailsChanged);
 
@@ -345,6 +572,7 @@ function BookingPageContent() {
         }
         if (meData.user?.role !== "user") throw new Error("Only user accounts can create bookings.");
         setCurrentRole(meData.user?.role || "");
+        setMeData(meData);
         const provRes = await fetch(`/api/providers/${providerId}`);
         const provData = await provRes.json();
         if (!provRes.ok) throw new Error(provData.error || "Failed to load provider");
@@ -404,6 +632,25 @@ function BookingPageContent() {
     setSubmitting(true);
     try {
       if (currentRole !== "user") throw new Error("Only user accounts can create bookings.");
+
+      // Determine location data
+      let locationData = {};
+      if (form.useProfileLocation) {
+        // Use profile location
+        locationData = {
+          location: meData?.user?.location || "",
+          lat: meData?.user?.lat || null,
+          lng: meData?.user?.lng || null,
+        };
+      } else {
+        // Use custom location
+        locationData = {
+          location: form.location,
+          lat: form.lat,
+          lng: form.lng,
+        };
+      }
+
       const res = await fetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -418,6 +665,7 @@ function BookingPageContent() {
           notes: form.notes,
           couponCode: appliedCoupon?.code,
           amount: form.advanceOnly ? advanceAmount : totalPayable,
+          ...locationData,
         }),
       });
       const data = await res.json();
@@ -649,6 +897,80 @@ function BookingPageContent() {
                     placeholder="Any specific instructions..."
                     value={form.notes}
                     onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+                </div>
+
+                {/* ── Location ── */}
+                <div style={{ ...sectionLabel }}>
+                  Service Location
+                  <span style={{ flex: 1, height: 1, background: "#fecaca" }} />
+                </div>
+
+                <div style={{ marginBottom: 18 }}>
+                  <label style={fieldLabel}>Where should the service be performed?</label>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, useProfileLocation: true })}
+                      style={{
+                        flex: 1,
+                        padding: "10px 16px",
+                        border: `1px solid ${form.useProfileLocation ? "#b91c1c" : "#fecaca"}`,
+                        borderRadius: 10,
+                        background: form.useProfileLocation ? "#7f1d1d" : "#fef2f2",
+                        color: form.useProfileLocation ? "#fff" : "#888",
+                        fontSize: 13,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        transition: "all 0.15s"
+                      }}
+                    >
+                      🏠 Use My Home Location
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, useProfileLocation: false })}
+                      style={{
+                        flex: 1,
+                        padding: "10px 16px",
+                        border: `1px solid ${!form.useProfileLocation ? "#b91c1c" : "#fecaca"}`,
+                        borderRadius: 10,
+                        background: !form.useProfileLocation ? "#7f1d1d" : "#fef2f2",
+                        color: !form.useProfileLocation ? "#fff" : "#888",
+                        fontSize: 13,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        transition: "all 0.15s"
+                      }}
+                    >
+                      📍 Set New Location
+                    </button>
+                  </div>
+
+                  {form.useProfileLocation ? (
+                    <div style={{
+                      padding: "12px 16px",
+                      background: "#f0fdf4",
+                      border: "1px solid #bbf7d0",
+                      borderRadius: 10,
+                      fontSize: 13,
+                      color: "#065f46"
+                    }}>
+                      <div style={{ fontWeight: 600, marginBottom: 4 }}>📍 Using your profile location</div>
+                      <div>{meData?.user?.location || "No location set in profile"}</div>
+                      {meData?.user?.lat && meData?.user?.lng && (
+                        <div style={{ fontSize: 12, marginTop: 2, opacity: 0.8 }}>
+                          Coordinates: {meData.user.lat.toFixed(4)}, {meData.user.lng.toFixed(4)}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <LocationPicker
+                      location={form.location}
+                      lat={form.lat}
+                      lng={form.lng}
+                      onChange={(locationData) => setForm({ ...form, ...locationData })}
+                    />
+                  )}
                 </div>
 
                 <button className="bk-submit" disabled={isRequestButtonDisabled}

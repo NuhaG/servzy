@@ -54,11 +54,19 @@ export async function GET(req) {
         }
 
         const providers = await Provider.find(query)
+            .populate({
+                path: 'userId',
+                match: { role: 'provider' },
+                select: 'name email role'
+            })
             .sort({ createdAt: -1 })
             .limit(limit)
             .lean();
 
-        return NextResponse.json(providers, { status: 200 });
+        // Filter out providers where userId is null (user doesn't exist or doesn't have provider role)
+        const filteredProviders = providers.filter(p => p.userId);
+
+        return NextResponse.json(filteredProviders, { status: 200 });
     } catch (error) {
         console.error(error);
         return NextResponse.json(

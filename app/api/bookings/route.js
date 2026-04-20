@@ -22,7 +22,7 @@ export async function POST(req) {
         await connectDB();
 
         const body = await req.json();
-        const { userId, serviceId, scheduledDate, timeSlot, notes, type = "one-time" } = body;
+        const { userId, serviceId, scheduledDate, timeSlot, notes, type = "one-time", location, lat, lng } = body;
         const bookingUserId = hasRole(user, [ROLES.ADMIN]) && userId ? userId : user._id;
 
         if (!["one-time", "contract"].includes(type)) {
@@ -39,6 +39,15 @@ export async function POST(req) {
             return NextResponse.json(
                 { error: "Service not available" },
                 { status: 404 }
+            );
+        }
+
+        // check user is not blocked
+        const userDoc = await User.findById(bookingUserId);
+        if (userDoc?.blocked) {
+            return NextResponse.json(
+                { error: "Your account has been blocked. You cannot make bookings." },
+                { status: 403 }
             );
         }
 
@@ -83,7 +92,10 @@ export async function POST(req) {
             notes,
             status: "pending",
             amount,
-            type
+            type,
+            location,
+            lat,
+            lng
         });
 
         // Get user details for notification

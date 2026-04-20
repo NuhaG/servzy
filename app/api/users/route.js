@@ -21,13 +21,13 @@ export async function GET(req) {
         const page = parseInt(searchParams.get("page") || "1");
         const limit = parseInt(searchParams.get("limit") || "20");
 
-        const users = await User.find()
+        const users = await User.find({ role: "user" })
             .select("name email role createdAt") // avoid exposing clerkId
             .skip((page - 1) * limit)
             .limit(limit)
             .sort({ createdAt: -1 });
 
-        const totalUsers = await User.countDocuments();
+        const totalUsers = await User.countDocuments({ role: "user" });
 
         return NextResponse.json({
             users,

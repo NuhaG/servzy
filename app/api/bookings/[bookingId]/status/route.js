@@ -70,6 +70,14 @@ export async function PATCH(req, { params }) {
             );
         }
 
+        // Check if trying to mark as completed without payment verification
+        if (status === "completed" && booking.paymentStatus !== "paid") {
+            return NextResponse.json(
+                { error: "Payment must be verified before marking as completed" },
+                { status: 400 }
+            );
+        }
+
         booking.status = status;
         await booking.save();
 

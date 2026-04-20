@@ -98,7 +98,7 @@ export default function AppNav() {
                 {item.label}
               </Link>
             ))}
-            <NotificationBell role={role} />
+            {role !== "admin" && <NotificationBell role={role} />}
             <div style={{ marginLeft: 6 }}>
               <UserButton afterSignOutUrl="/" />
             </div>

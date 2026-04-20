@@ -317,6 +317,34 @@ export default function ProviderDashboardPage() {
           transition: transform 0.15s;
           flex-shrink: 0;
         }
+
+        /* ── Warning Banners ── */
+        .pd-warning-banner {
+          background: #fff1f2;
+          border: 1px solid #fecaca;
+          border-left: 4px solid #b91c1c;
+          border-radius: 12px;
+          padding: 16px 20px;
+          margin-bottom: 16px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .pd-warning-icon {
+          font-size: 24px;
+          flex-shrink: 0;
+        }
+        .pd-warning-content { flex: 1; }
+        .pd-warning-title {
+          font-size: 14px;
+          font-weight: 700;
+          color: #b91c1c;
+          margin-bottom: 2px;
+        }
+        .pd-warning-msg {
+          font-size: 12px;
+          color: #7f1d1d;
+        }
       `}</style>
 
       <main className="pd-page">
@@ -358,6 +386,30 @@ export default function ProviderDashboardPage() {
               <div className="pd-header-avatar">🏢</div>
             )}
           </div>
+
+          {/* Warning Banners */}
+          {provider?.blocked && (
+            <div className="pd-warning-banner">
+              <div className="pd-warning-icon">🚫</div>
+              <div className="pd-warning-content">
+                <div className="pd-warning-title">Account Blocked</div>
+                <div className="pd-warning-msg">
+                  Your account has been blocked. You cannot provide services or book services. Please contact support.
+                </div>
+              </div>
+            </div>
+          )}
+          {provider?.flaggedCount > 0 && (
+            <div className="pd-warning-banner">
+              <div className="pd-warning-icon">⚠️</div>
+              <div className="pd-warning-content">
+                <div className="pd-warning-title">Account Flagged</div>
+                <div className="pd-warning-msg">
+                  Your account has been flagged for review (flagged {provider.flaggedCount} time{provider.flaggedCount > 1 ? 's' : ''}). Please ensure your services comply with our policies.
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Stats */}
           <div className="pd-stats">

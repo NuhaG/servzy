@@ -29,6 +29,11 @@ const BookingSchema = new mongoose.Schema(
     },
     notes: String,
 
+    // ── Location fields ──────────────────────────────────────
+    location: String,
+    lat: Number,
+    lng: Number,
+
     // ── Payment fields ──────────────────────────────────────
     paymentId: String,
     paymentOrderId: String,

@@ -50,24 +50,54 @@ export async function POST(request) {
 
         if (razorpay_signature === expectedSign) {
             // Payment verified successfully
-            // Here you can update your database, e.g., mark booking as paid
+            // Update booking with payment details
+            if (bookingId) {
+                try {
+                    await Booking.findByIdAndUpdate(
+                        bookingId,
+                        {
+                            paymentStatus: "paid",
+                            paymentId: razorpay_payment_id,
+                            paymentOrderId: razorpay_order_id,
+                        },
+                        { new: true }
+                    );
+                    console.log(`[Payment] Booking ${bookingId} marked as paid`);
+                } catch (bookingErr) {
+                    console.error("Failed to update booking payment status:", bookingErr);
+                }
+            }
 
-            // dispatch notification
+            // dispatch notification to user
             try {
-                // If you pass bookingId or amount in the request payload, use them here.
-                // Assuming client passes them or we notify generally since payment verified:
-                // amount and bookingId are extracted from the initial request payload
-                
+                const message = amount 
+                    ? `Payment of ₹${amount} has been verified. Your booking is ready!` 
+                    : "Your recent payment has been verified successfully.";
+                    
                 await Notification.create({
                     userId: user._id, 
                     bookingId: bookingId || undefined,
-                    title: "Payment Successful",
-                    message: amount 
-                        ? `Payment of ₹${amount} has been verified.` 
-                        : "Your recent payment has been verified successfully.",
+                    title: "Payment Successful ✅",
+                    message: message,
                     type: "payment",
-                    actionUrl: bookingId ? `/bookings/${bookingId}` : '/bookings',
+                    actionUrl: bookingId ? `/user/bookings` : '/user/bookings',
                 });
+
+                // Send notification to provider as well
+                if (bookingId) {
+                    const booking = await Booking.findById(bookingId);
+                    if (booking && booking.providerId) {
+                        const providerName = user?.name || "Customer";
+                        await Notification.create({
+                            providerId: booking.providerId,
+                            bookingId: bookingId,
+                            title: "Payment Received ✅",
+                            message: `Payment of ₹${amount || booking.amount} received from ${providerName}. Booking is ready to complete.`,
+                            type: "payment",
+                            actionUrl: `/provider/bookings`,
+                        });
+                    }
+                }
             } catch (notifErr) {
                 console.error("Failed to create payment notification:", notifErr);
             }

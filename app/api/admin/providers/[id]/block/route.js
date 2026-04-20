@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import Provider from "@/models/Provider";
 import User from "@/models/User";
+import Notification from "@/models/Notification";
 import { ROLES } from "@/lib/roles";
 import { syncClerkUserRole } from "@/lib/clerk";
 import { getSessionUser, hasRole } from "@/lib/rbac";
@@ -30,9 +31,9 @@ export async function PATCH(req, { params }) {
         provider.blocked = true;
         await provider.save();
 
-        await User.findOneAndUpdate(
+        const userDoc = await User.findOneAndUpdate(
             { clerkId: provider.clerkId },
-            { role: ROLES.USER }
+            { role: ROLES.USER, blocked: true }
         );
 
         if (provider.clerkId) {
@@ -41,6 +42,30 @@ export async function PATCH(req, { params }) {
             } catch (clerkError) {
                 console.warn("Clerk metadata update failed:", clerkError.message);
             }
+        }
+
+        // Send notification to blocked provider
+        try {
+            await Notification.create({
+                providerId: provider._id,
+                title: "Account Blocked 🚫",
+                message: `Your account has been blocked by an administrator. You can no longer provide services. Please contact support for more information.`,
+                type: "warning",
+                actionUrl: `/provider/profile`,
+            });
+
+            // Also notify the user
+            if (userDoc?._id) {
+                await Notification.create({
+                    userId: userDoc._id,
+                    title: "Account Blocked 🚫",
+                    message: `Your account has been blocked by an administrator. You can no longer provide services or book services. Please contact support for more information.`,
+                    type: "warning",
+                    actionUrl: `/provider/profile`,
+                });
+            }
+        } catch (notifErr) {
+            console.error("Failed to create block notification:", notifErr);
         }
 
         return NextResponse.json({ message: "Provider blocked successfully", provider }, { status: 200 });
