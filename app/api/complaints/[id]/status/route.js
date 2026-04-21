@@ -15,7 +15,7 @@ export async function PUT(request, { params }) {
         }
 
         const user = await User.findOne({ clerkId });
-        if (!user || (user.role !== "admin" && user.role !== "provider")) {
+        if (!user || user.role !== "admin") {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
@@ -25,14 +25,6 @@ export async function PUT(request, { params }) {
         const complaint = await Complaint.findById(id);
         if (!complaint) {
             return NextResponse.json({ error: "Complaint not found" }, { status: 404 });
-        }
-
-        // provider can update only complaints assigned to them
-        if (user.role === "provider") {
-            const provider = await Provider.findOne({ clerkId });
-            if (!provider || complaint.providerId?.toString() !== provider._id.toString()) {
-                return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-            }
         }
 
         const updates = { status };
@@ -50,21 +42,17 @@ export async function PUT(request, { params }) {
             return NextResponse.json({ error: "Complaint not found" }, { status: 404 });
         }
 
-        if (user.role === "admin") {
-            await updatedComplaint.populate([
-                { path: "userId", select: "name email" },
-                {
-                    path: "providerId",
-                    select: "businessName userId",
-                    populate: {
-                        path: "userId",
-                        select: "email",
-                    },
+        await updatedComplaint.populate([
+            { path: "userId", select: "name email" },
+            {
+                path: "providerId",
+                select: "businessName userId",
+                populate: {
+                    path: "userId",
+                    select: "email",
                 },
-            ]);
-        } else {
-            await updatedComplaint.populate("providerId", "businessName");
-        }
+            },
+        ]);
 
         return NextResponse.json(updatedComplaint);
     } catch (error) {
