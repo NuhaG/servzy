@@ -26,15 +26,19 @@ export default function AdminDashboardPage() {
         const providersData = await providersResponse.json();
         const usersData = await usersResponse.json();
 
-        if (!providersResponse.ok) throw new Error(providersData.error || "Failed to fetch providers");
-        if (!usersResponse.ok) throw new Error(usersData.error || "Failed to fetch users");
+        if (!providersResponse.ok)
+          throw new Error(providersData.error || "Failed to fetch providers");
+        if (!usersResponse.ok)
+          throw new Error(usersData.error || "Failed to fetch users");
 
         if (!isMounted) return;
         setProviders(Array.isArray(providersData) ? providersData : []);
         setUsersTotal(Number(usersData.totalUsers || 0));
       } catch (err) {
         if (!isMounted) return;
-        setError(err.message || "Something went wrong while loading dashboard.");
+        setError(
+          err.message || "Something went wrong while loading dashboard.",
+        );
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -48,16 +52,36 @@ export default function AdminDashboardPage() {
 
   const stats = useMemo(() => {
     const totalProviders = providers.length;
-    const blockedProviders = providers.filter((p) => p.status === "blocked" || p.blocked).length;
-    const flaggedProviders = providers.filter((p) => Number(p.flaggedCount || 0) > 0).length;
-    const lowReliability = providers.filter((p) => Number(p.reliabilityScore || 0) < 80).length;
+    const blockedProviders = providers.filter(
+      (p) => p.status === "blocked" || p.blocked,
+    ).length;
+    const flaggedProviders = providers.filter(
+      (p) => Number(p.flaggedCount || 0) > 0,
+    ).length;
+    const lowReliability = providers.filter(
+      (p) => Number(p.reliabilityScore || 0) < 80,
+    ).length;
     const avgReliability = totalProviders
-      ? Math.round(providers.reduce((sum, p) => sum + Number(p.reliabilityScore || 0), 0) / totalProviders)
+      ? Math.round(
+          providers.reduce(
+            (sum, p) => sum + Number(p.reliabilityScore || 0),
+            0,
+          ) / totalProviders,
+        )
       : 0;
-    return { totalProviders, blockedProviders, flaggedProviders, lowReliability, avgReliability };
+    return {
+      totalProviders,
+      blockedProviders,
+      flaggedProviders,
+      lowReliability,
+      avgReliability,
+    };
   }, [providers]);
 
-  const hasAttentionItems = stats.flaggedProviders > 0 || stats.blockedProviders > 0 || stats.lowReliability > 0;
+  const hasAttentionItems =
+    stats.flaggedProviders > 0 ||
+    stats.blockedProviders > 0 ||
+    stats.lowReliability > 0;
 
   const quickActions = [
     {
@@ -73,6 +97,13 @@ export default function AdminDashboardPage() {
       emoji: "👥",
       onClick: () => router.push("/admin/users"),
       tone: "green",
+    },
+    {
+      title: "Review Complaints",
+      subtitle: "Triage and resolve user complaints",
+      emoji: "⚠️",
+      onClick: () => router.push("/admin/complaints"),
+      tone: "orange",
     },
     {
       title: "Review Flagged",
@@ -189,7 +220,7 @@ export default function AdminDashboardPage() {
         .ad-actions {
           margin-top: 12px;
           display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 12px;
         }
         .ad-action {
@@ -236,6 +267,7 @@ export default function AdminDashboardPage() {
 
         @media (max-width: 900px) {
           .ad-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+          .ad-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
         @media (max-width: 700px) {
           .ad-actions { grid-template-columns: 1fr; }
@@ -252,20 +284,30 @@ export default function AdminDashboardPage() {
           <section className="ad-hero">
             <p className="ad-hero-kicker">Admin Dashboard</p>
             <h1>Welcome back, Team Admin 👋</h1>
-            <p>Here is a quick health check of your platform and the things that may need attention today.</p>
-            <span className="ad-hero-chip">Updated live from users + providers</span>
+            <p>
+              Here is a quick health check of your platform and the things that
+              may need attention today.
+            </p>
+            <span className="ad-hero-chip">
+              Updated live from users + providers
+            </span>
           </section>
 
           {error && <p className="ad-error">{error}</p>}
 
           {!error && hasAttentionItems && (
-            <div className="ad-alert">⚠️ Heads up: you have flagged, blocked, or low-reliability providers to review.</div>
+            <div className="ad-alert">
+              ⚠️ Heads up: you have flagged, blocked, or low-reliability
+              providers to review.
+            </div>
           )}
 
           <div className="ad-section">Overview</div>
           <section className="ad-grid">
             <article className="ad-card">
-              <div className="ad-card-num">{loading ? "..." : stats.totalProviders}</div>
+              <div className="ad-card-num">
+                {loading ? "..." : stats.totalProviders}
+              </div>
               <div className="ad-card-label">🧑‍🔧 Total Providers</div>
             </article>
             <article className="ad-card">
@@ -273,15 +315,21 @@ export default function AdminDashboardPage() {
               <div className="ad-card-label">👥 Total Users</div>
             </article>
             <article className="ad-card">
-              <div className="ad-card-num">{loading ? "..." : stats.blockedProviders}</div>
+              <div className="ad-card-num">
+                {loading ? "..." : stats.blockedProviders}
+              </div>
               <div className="ad-card-label">🚫 Blocked Providers</div>
             </article>
             <article className="ad-card">
-              <div className="ad-card-num">{loading ? "..." : stats.flaggedProviders}</div>
+              <div className="ad-card-num">
+                {loading ? "..." : stats.flaggedProviders}
+              </div>
               <div className="ad-card-label">🚩 Flagged Providers</div>
             </article>
             <article className="ad-card">
-              <div className="ad-card-num">{loading ? "..." : `${stats.avgReliability}%`}</div>
+              <div className="ad-card-num">
+                {loading ? "..." : `${stats.avgReliability}%`}
+              </div>
               <div className="ad-card-label">💚 Avg Reliability</div>
             </article>
           </section>
@@ -289,7 +337,11 @@ export default function AdminDashboardPage() {
           <div className="ad-section">Quick Actions</div>
           <section className="ad-actions">
             {quickActions.map((action) => (
-              <button key={action.title} className={`ad-action ${action.tone}`} onClick={action.onClick}>
+              <button
+                key={action.title}
+                className={`ad-action ${action.tone}`}
+                onClick={action.onClick}
+              >
                 <span className="ad-action-icon">{action.emoji}</span>
                 <span>
                   <p className="ad-action-title">{action.title}</p>

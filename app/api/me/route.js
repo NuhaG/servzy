@@ -38,12 +38,6 @@ export async function GET() {
         .lean();
     }
 
-    // Self-heal older provider accounts whose app role did not get updated.
-    if (provider && user.role !== ROLES.PROVIDER && user.role !== ROLES.ADMIN) {
-      user.role = ROLES.PROVIDER;
-      await user.save();
-    }
-
     return NextResponse.json(
       {
         user: {
@@ -51,7 +45,7 @@ export async function GET() {
           clerkId: user.clerkId,
           name: user.name,
           email: user.email,
-          role: provider && user.role !== ROLES.ADMIN ? ROLES.PROVIDER : user.role,
+          role: user.role,
         },
         provider,
         hasProvider: !!provider,
