@@ -22,12 +22,44 @@ const BookingSchema = new mongoose.Schema(
       default: "pending",
     },
     amount: Number,
+    finalAmount: Number,
     type: {
       type: String,
       enum: ["one-time", "contract"],
       default: "one-time",
     },
     notes: String,
+    startDate: Date,
+    endDate: Date,
+    contractMonths: Number,
+    contractDaysPerWeek: Number,
+    preferredDays: [String],
+    originalContractId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Booking",
+    },
+    renewMode: {
+      type: String,
+      enum: ["same", "different"],
+    },
+    advanceOnly: {
+      type: Boolean,
+      default: false,
+    },
+
+    // ── Location fields ──────────────────────────────────────
+    location: String,
+    lat: Number,
+    lng: Number,
+
+    // ── Payment fields ──────────────────────────────────────
+    paymentId: String,
+    paymentOrderId: String,
+    paymentStatus: {
+      type: String,
+      enum: ["pending", "paid", "failed"],
+      default: "pending",
+    },
   },
   { timestamps: true },
 );

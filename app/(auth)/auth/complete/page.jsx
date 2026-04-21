@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function AuthCompletePage() {
+function AuthCompleteContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState("");
@@ -84,5 +84,23 @@ export default function AuthCompletePage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function AuthCompletePage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="sv-page">
+          <div className="sv-shell">
+            <div className="sv-card p-6">
+              <p className="sv-subtitle">Finishing sign-in...</p>
+            </div>
+          </div>
+        </main>
+      }
+    >
+      <AuthCompleteContent />
+    </Suspense>
   );
 }

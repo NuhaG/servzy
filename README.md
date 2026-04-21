@@ -1,5 +1,7 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
+Servzy is a service marketplace prototype with role-based dashboards for users, providers, and admins, plus support for booking location selection and provider location viewing.
+
 ## Getting Started
 
 First, run the development server:
@@ -19,6 +21,15 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Project Notes
+
+- Admin panels are role-aware:
+  - `/admin/users` shows only regular users (`role: user`).
+  - `/admin/providers` shows only provider accounts (`role: provider`).
+- The admin navigation no longer renders the notification bell.
+- Providers can view booking-specific locations on their bookings dashboard.
+- Users can choose a saved home location or enter a new custom booking location.
 
 ## Learn More
 

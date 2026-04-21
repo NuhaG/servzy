@@ -16,7 +16,7 @@ export async function GET(req) {
       .populate({
         path: "providerId",
         select:
-          "businessName location avgRating reliabilityScore distance lat lng status blocked",
+          "businessName location avgRating reliabilityScore distance lat lng status blocked basePrice bookingCharge consultationFee serviceFee avatarUrl photo",
         match: { blocked: { $ne: true } },
       })
       .sort({ createdAt: -1 });

@@ -106,7 +106,7 @@ export async function POST(req) {
         userId: providerUser._id,
         clerkId: providerUser.clerkId,
         businessName: item.name,
-        photo: randomImageUrl(`${item.name}-photo`),
+        avatarUrl: randomImageUrl(`${item.name}-photo`),
         bio: `${item.serviceTuple[0]} and ${item.serviceTuple[1]} specialist`,
         serviceTuple: item.serviceTuple,
         categories: [item.serviceTuple[0], item.serviceTuple[1]],
