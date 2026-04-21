@@ -31,7 +31,8 @@ export default function NotificationBell({ role = "user" }) {
   const dropdownRef = useRef(null);
   const bellRef = useRef(null);
 
-  const destinationHref = roleNotificationHref[role] || roleNotificationHref.user;
+  const destinationHref =
+    roleNotificationHref[role] || roleNotificationHref.user;
 
   async function loadNotifications() {
     try {
@@ -173,7 +174,8 @@ export default function NotificationBell({ role = "user" }) {
           style={{
             position: "absolute",
             top: "100%",
-            right: 0,
+            left: "-260%",
+            transform: "translateX(-50%)",
             marginTop: "8px",
             background: "#fff",
             border: "1px solid #e5e7eb",
@@ -253,13 +255,23 @@ export default function NotificationBell({ role = "user" }) {
                     position: "relative",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = notif.isRead ? "#f9fafb" : "#dbeafe";
+                    e.currentTarget.style.background = notif.isRead
+                      ? "#f9fafb"
+                      : "#dbeafe";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = notif.isRead ? "#fff" : "#eff6ff";
+                    e.currentTarget.style.background = notif.isRead
+                      ? "#fff"
+                      : "#eff6ff";
                   }}
                 >
-                  <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "12px",
+                      alignItems: "flex-start",
+                    }}
+                  >
                     <div
                       style={{
                         fontSize: "18px",
@@ -280,14 +292,17 @@ export default function NotificationBell({ role = "user" }) {
                           gap: "6px",
                         }}
                       >
-                         {notif.title || notif.type.charAt(0).toUpperCase() + notif.type.slice(1)}
+                        {notif.title ||
+                          notif.type.charAt(0).toUpperCase() +
+                            notif.type.slice(1)}
                         {!notif.isRead && (
                           <span
                             style={{
                               width: "6px",
                               height: "6px",
                               borderRadius: "50%",
-                              background: notificationTypeColors[notif.type] || "#3b82f6",
+                              background:
+                                notificationTypeColors[notif.type] || "#3b82f6",
                             }}
                           ></span>
                         )}
@@ -355,14 +370,14 @@ export default function NotificationBell({ role = "user" }) {
               <a
                 href={destinationHref}
                 onClick={() => {
-                   setOpen(false);
+                  setOpen(false);
                 }}
                 style={{
                   fontSize: "12px",
                   fontWeight: "600",
                   color: "#3b82f6",
                   textDecoration: "none",
-                  display: "inline-block"
+                  display: "inline-block",
                 }}
               >
                 View all notifications →
