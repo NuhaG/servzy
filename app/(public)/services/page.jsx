@@ -10,24 +10,8 @@ function formatPrice(price, unit) {
   return `₹${Number(price || 0).toLocaleString("en-IN")} ${unitMap[unit] || ""}`.trim();
 }
 
-function toFiniteNumber(value, fallback = 0) {
-  const direct = Number(value);
-  if (Number.isFinite(direct)) return direct;
-  const parsed = parseFloat(String(value ?? "").replace(/[^0-9.-]+/g, ""));
-  return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function toPercent(value) {
-  const n = toFiniteNumber(value, 0);
-  return Math.max(0, Math.min(100, Math.round(n)));
-}
-
 function getServiceImage(service, provider) {
-  // Use first service image if available
-  if (service?.serviceImages?.[0]) {
-    return service.serviceImages[0];
-  }
-  // Use provider avatar if available
+  // Use provider avatar/photo for services (services photos are actually provider photos)
   if (provider?.avatarUrl) {
     return provider.avatarUrl;
   }
@@ -36,7 +20,7 @@ function getServiceImage(service, provider) {
     return provider.photo;
   }
   // Fall back to placeholder
-  return `https://i.pravatar.cc/320?u=${encodeURIComponent(service?._id || "provider")}`;
+  return `https://i.pravatar.cc/320?u=${encodeURIComponent(provider?._id || "provider")}`;
 }
 
 function VerifiedBadge() {
@@ -110,8 +94,8 @@ export default function PublicServicesPage() {
     const q = search.toLowerCase().trim();
     const filteredServices = services.filter((item) => {
       const p = item.providerId || {};
-      const rating = toFiniteNumber(p.avgRating, 0);
-      const rel = toPercent(p.reliabilityScore);
+      const rating = Number(p.avgRating || 0);
+      const rel = Number(p.reliabilityScore || 0);
       const matchesSearch =
         !q ||
         item.title?.toLowerCase().includes(q) ||
@@ -154,9 +138,8 @@ export default function PublicServicesPage() {
     providerList.sort((a, b) => {
       if (sortBy === "price_low") return a.lowestPrice - b.lowestPrice;
       if (sortBy === "price_high") return b.lowestPrice - a.lowestPrice;
-      if (sortBy === "rating")
-        return toFiniteNumber(b.provider?.avgRating, 0) - toFiniteNumber(a.provider?.avgRating, 0);
-      return toPercent(b.provider?.reliabilityScore) - toPercent(a.provider?.reliabilityScore);
+      if (sortBy === "rating") return Number(b.provider?.avgRating || 0) - Number(a.provider?.avgRating || 0);
+      return Number(b.provider?.reliabilityScore || 0) - Number(a.provider?.reliabilityScore || 0);
     });
 
     return providerList;
@@ -448,8 +431,8 @@ export default function PublicServicesPage() {
                     const provider = entry.provider || {};
                     const services = entry.services || [];
                     const isVerified = provider.status === "approved";
-                    const rating = toFiniteNumber(provider.avgRating, 0);
-                    const rel = toPercent(provider.reliabilityScore);
+                    const rating = Number(provider.avgRating || 0);
+                    const rel = Number(provider.reliabilityScore || 0);
                     const lowestPrice = entry.lowestPrice;
                     const totalLowestPrice =
                       lowestPrice +

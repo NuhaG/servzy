@@ -6,7 +6,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import AppNav from "@/components/AppNav";
 
 function getProviderImage(provider, service) {
-  // Use provider avatar if available
+  // Always use provider avatar/photo for services
   if (provider?.avatarUrl) {
     return provider.avatarUrl;
   }

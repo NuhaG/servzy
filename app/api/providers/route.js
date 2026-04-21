@@ -62,15 +62,18 @@ export async function GET(req) {
     const providers = await Provider.find(query)
       .populate({
         path: "userId",
-        match: includeAll ? {} : { role: "provider" }, // Only filter by role for non-admin requests
+        match: includeAll ? {} : { role: "provider" }, // Don't filter by role for admin includeAll requests
         select: "name email role",
       })
       .sort({ createdAt: -1 })
       .limit(limit)
       .lean();
 
-    // Filter out providers where userId is null (user doesn't exist or doesn't have provider role)
-    const filteredProviders = providers.filter((p) => p.userId);
+    // Filter out providers where userId is null (user doesn't exist)
+    // For includeAll requests, include all providers regardless of user role
+    const filteredProviders = includeAll
+      ? providers.filter((p) => p.userId)
+      : providers.filter((p) => p.userId);
 
     return NextResponse.json(filteredProviders, { status: 200 });
   } catch (error) {
