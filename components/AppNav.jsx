@@ -24,9 +24,10 @@ export default function AppNav() {
   }, []);
 
   const roleLinks = useMemo(() => {
-    const links = [{ href: "/services", label: "Find Services" }];
+    const links = [];
 
     if (role === "user") {
+      links.push({ href: "/services", label: "Find Services" }); // moved here
       links.push({ href: "/user/dashboard", label: "Dashboard" });
       links.push({ href: "/user/bookings", label: "My Bookings" });
     }

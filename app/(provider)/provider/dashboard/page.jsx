@@ -39,9 +39,11 @@ export default function ProviderDashboardPage() {
       try {
         const meRes  = await fetch("/api/me");
         const meData = await meRes.json();
-        if (!meRes.ok) throw new Error(meData.error || "Failed to load account");
-        if (meData.user?.role === "user")  { router.replace("/user/dashboard");  return; }
-        if (meData.user?.role === "admin") { router.replace("/admin/dashboard"); return; }
+	        if (!meRes.ok) throw new Error(meData.error || "Failed to load account");
+	        if (meData.user?.role === "admin") { router.replace("/admin/dashboard"); return; }
+
+	        const hasProviderProfile = Boolean(meData.provider?._id);
+	        if (!hasProviderProfile && meData.user?.role === "user")  { router.replace("/user/dashboard");  return; }
 
         if (!meData.provider?._id) {
           const cRes = await fetch("/api/providers", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ businessName: meData.user?.name ? `${meData.user.name} Services` : "Provider Services" }) });

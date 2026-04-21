@@ -2,11 +2,21 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import AppNav from "@/components/AppNav";
 
+function toFiniteNumber(value, fallback = 0) {
+  const direct = Number(value);
+  if (Number.isFinite(direct)) return direct;
+  const parsed = parseFloat(String(value ?? "").replace(/[^0-9.-]+/g, ""));
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function toPercent(value) {
+  const n = toFiniteNumber(value, 0);
+  return Math.max(0, Math.min(100, Math.round(n)));
+}
+
 export default function AdminProvidersPage() {
-  const router = useRouter();
   const [providers, setProviders] = useState([]);
   const [usersTotal, setUsersTotal] = useState(0);
   const [query, setQuery] = useState("");
@@ -75,20 +85,18 @@ export default function AdminProvidersPage() {
         const key = String(providerId);
         const current = prev[key] || {};
         const next = { ...current };
-        if (action === "block") {
-          next.blocked = true;
-          next.approved = false;
-          next.status = "blocked";
-        } else if (action === "unblock") {
-          next.blocked = false;
-          next.status = "pending";
-        } else if (action === "approve") {
-          next.approved = true;
-          next.blocked = false;
-          next.status = "approved";
-        } else if (action === "flag") {
-          next.status = "flagged";
-        }
+	        if (action === "block") {
+	          next.blocked = true;
+	          next.approved = false;
+	          next.status = "blocked";
+	        } else if (action === "unblock") {
+	          next.blocked = false;
+	          next.status = "pending";
+	        } else if (action === "approve") {
+	          next.approved = true;
+	          next.blocked = false;
+	          next.status = "approved";
+	        }
         const updated = { ...prev, [key]: next };
         localStatusesRef.current = updated;
         return updated;
@@ -101,16 +109,17 @@ export default function AdminProvidersPage() {
         unblock: `🔓 ${providerName} has been unblocked.`,
       };
 
-      setProviders((prev) =>
-        prev.map((provider) => {
-          if (String(provider._id) !== String(providerId)) return provider;
-          if (action === "block") return { ...provider, status: "blocked", blocked: true };
-          if (action === "unblock") return { ...provider, status: "pending", blocked: false };
-          if (action === "approve") return { ...provider, status: "approved", blocked: false };
-          if (action === "flag") return { ...provider, status: "flagged" };
-          return provider;
-        })
-      );
+	      setProviders((prev) =>
+	        prev.map((provider) => {
+	          if (String(provider._id) !== String(providerId)) return provider;
+	          if (action === "block") return { ...provider, status: "blocked", blocked: true };
+	          if (action === "unblock") return { ...provider, status: "pending", blocked: false };
+	          if (action === "approve") return { ...provider, status: "approved", blocked: false };
+	          if (action === "flag")
+	            return { ...provider, flaggedCount: Number(provider.flaggedCount || 0) + 1 };
+	          return provider;
+	        })
+	      );
 
       showToast(messages[action] || data.message || `Provider ${action}d.`);
     } catch (err) {
@@ -160,17 +169,13 @@ export default function AdminProvidersPage() {
     }
   }
 
-  function openProfile(provider) {
-    router.push(`/admin/providers/${provider._id}`);
-  }
-
   const summary = useMemo(() => {
     const totalProviders = providers.length;
     const blocked = providers.filter(
       (p) => p.status === "blocked" || p.blocked,
     ).length;
     const lowReliability = providers.filter(
-      (p) => Number(p.reliabilityScore || 0) < 80,
+      (p) => toPercent(p.reliabilityScore) < 80,
     ).length;
     const flagged = providers.filter(
       (p) => Number(p.flaggedCount || 0) > 0,
@@ -178,7 +183,7 @@ export default function AdminProvidersPage() {
     const avgReliability = totalProviders
       ? Math.round(
           providers.reduce(
-            (sum, p) => sum + Number(p.reliabilityScore || 0),
+            (sum, p) => sum + toPercent(p.reliabilityScore),
             0,
           ) / totalProviders,
         )
@@ -433,13 +438,18 @@ export default function AdminProvidersPage() {
               <div className="ap-empty">No providers found for this view.</div>
             )}
             {visibleProviders.map((provider) => {
-              const rel = Number(provider.reliabilityScore || 0);
+              const rel = toPercent(provider.reliabilityScore);
               const relColor = reliabilityColor(rel);
               const local = localStatuses[String(provider._id)] || {};
               const effectiveStatus = local.status || provider.status;
               const sc = statusColor(effectiveStatus);
               const blocked = typeof local.blocked === "boolean" ? local.blocked : isBlocked(provider);
               const approved = typeof local.approved === "boolean" ? local.approved : isApproved(provider);
+              const totalBookings = toFiniteNumber(provider.totalBookings, 0);
+              const cancellations = toFiniteNumber(provider.cancellations, 0);
+              const cancellationRate = totalBookings
+                ? Math.round((cancellations / totalBookings) * 100)
+                : 0;
               return (
                 <div key={provider._id} className="ap-card">
                   {/* Top row */}
@@ -499,42 +509,30 @@ export default function AdminProvidersPage() {
                     </span>
                   </div>
 
-                  {/* Mini stats */}
-                  <div className="ap-mini-grid">
-                    <div className="ap-mini">
-                      <div className="ap-mini-label">Accept Rate</div>
-                      <div className="ap-mini-val">
-                        {provider.acceptRate || 0}%
-                      </div>
-                    </div>
-                    <div className="ap-mini">
-                      <div className="ap-mini-label">Cancellations</div>
-                      <div className="ap-mini-val">
-                        {provider.cancellations || 0}
-                      </div>
-                    </div>
-                    <div className="ap-mini">
-                      <div className="ap-mini-label">Cancel Rate</div>
-                      <div className="ap-mini-val">
-                        {provider.rejectRate || 0}%
-                      </div>
-                    </div>
-                    <div className="ap-mini">
-                      <div className="ap-mini-label">Flagged Count</div>
-                      <div className="ap-mini-val">
-                        {provider.flaggedCount || 0}
+	                  {/* Mini stats */}
+	                  <div className="ap-mini-grid">
+	                    <div className="ap-mini">
+	                      <div className="ap-mini-label">Bookings</div>
+	                      <div className="ap-mini-val">{totalBookings}</div>
+	                    </div>
+	                    <div className="ap-mini">
+	                      <div className="ap-mini-label">Cancellations</div>
+	                      <div className="ap-mini-val">{cancellations}</div>
+	                    </div>
+	                    <div className="ap-mini">
+	                      <div className="ap-mini-label">Cancel Rate</div>
+	                      <div className="ap-mini-val">{cancellationRate}%</div>
+	                    </div>
+	                    <div className="ap-mini">
+	                      <div className="ap-mini-label">Flagged Count</div>
+	                      <div className="ap-mini-val">
+	                        {provider.flaggedCount || 0}
                       </div>
                     </div>
                   </div>
 
                   {/* Actions */}
                   <div className="ap-actions">
-                    <button
-                      className="ap-btn ap-btn-view"
-                      onClick={() => openProfile(provider)}
-                    >
-                      View Profile
-                    </button>
                     <button
                       className="ap-btn ap-btn-flag"
                       onClick={() =>
@@ -570,22 +568,13 @@ export default function AdminProvidersPage() {
                       onClick={() =>
                         updateProviderStatus(
                           provider._id,
-                          "block",
+                          blocked ? "unblock" : "block",
                           provider.businessName,
                         )
                       }
                     >
-                      🚫 Block
+                      {blocked ? "🔓 Unblock" : "🚫 Block"}
                     </button>
-                    {blocked ? (
-                      <button className="ap-btn ap-btn-unblock" onClick={() => updateProviderStatus(provider._id, "unblock", provider.businessName)}>
-                        🔓 Unblock
-                      </button>
-                    ) : (
-                      <button className="ap-btn ap-btn-block" onClick={() => updateProviderStatus(provider._id, "block", provider.businessName)}>
-                        🚫 Block
-                      </button>
-                    )}
                   </div>
                 </div>
               );
