@@ -41,7 +41,7 @@ export async function PUT(request, { params }) {
         }
 
         let updatedComplaint = await Complaint.findByIdAndUpdate(id, updates, {
-            new: true,
+            returnDocument: 'after',
             runValidators: true,
             context: "query",
         });
@@ -51,18 +51,19 @@ export async function PUT(request, { params }) {
         }
 
         if (user.role === "admin") {
-            updatedComplaint = await updatedComplaint
-                .populate("userId", "name email")
-                .populate({
+            await updatedComplaint.populate([
+                { path: "userId", select: "name email" },
+                {
                     path: "providerId",
                     select: "businessName userId",
                     populate: {
                         path: "userId",
                         select: "email",
                     },
-                });
+                },
+            ]);
         } else {
-            updatedComplaint = await updatedComplaint.populate("providerId", "businessName");
+            await updatedComplaint.populate("providerId", "businessName");
         }
 
         return NextResponse.json(updatedComplaint);
