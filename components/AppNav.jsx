@@ -39,6 +39,7 @@ export default function AppNav() {
 
     if (role === "admin") {
       links.push({ href: "/admin/dashboard", label: "Admin" });
+      links.push({ href: "/admin/complaints", label: "Complaints" });
       links.push({ href: "/admin/providers", label: "Providers" });
       links.push({ href: "/admin/users", label: "Users" });
     }
@@ -57,8 +58,26 @@ export default function AppNav() {
         borderBottom: "1px solid rgba(201,75,44,0.16)",
       }}
     >
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+      <div
+        style={{
+          maxWidth: 1200,
+          margin: "0 auto",
+          padding: "12px 20px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <Link
+          href="/"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            textDecoration: "none",
+          }}
+        >
           <span
             style={{
               width: 32,
@@ -75,10 +94,26 @@ export default function AppNav() {
           >
             S
           </span>
-          <span style={{ color: "#1a0a00", fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700 }}>Servzy</span>
+          <span
+            style={{
+              color: "#1a0a00",
+              fontFamily: "'Playfair Display', Georgia, serif",
+              fontWeight: 700,
+            }}
+          >
+            Servzy
+          </span>
         </Link>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flexWrap: "wrap",
+            justifyContent: "flex-end",
+          }}
+        >
           {isSignedIn ? (
             <>
               {roleLinks.map((item) => (
@@ -108,13 +143,45 @@ export default function AppNav() {
 
           {!isSignedIn ? (
             <>
-              <Link href="/services" style={{ textDecoration: "none", border: "1px solid rgba(201,75,44,0.22)", color: "#1a0a00", borderRadius: 10, padding: "8px 12px", fontSize: 13, fontWeight: 600, background: "#fff" }}>
+              <Link
+                href="/services"
+                style={{
+                  textDecoration: "none",
+                  border: "1px solid rgba(201,75,44,0.22)",
+                  color: "#1a0a00",
+                  borderRadius: 10,
+                  padding: "8px 12px",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  background: "#fff",
+                }}
+              >
                 Find Services
               </Link>
-              <Link href="/sign-in" style={{ textDecoration: "none", color: "#c94b2c", padding: "8px 12px", fontSize: 13, fontWeight: 700 }}>
+              <Link
+                href="/sign-in"
+                style={{
+                  textDecoration: "none",
+                  color: "#c94b2c",
+                  padding: "8px 12px",
+                  fontSize: 13,
+                  fontWeight: 700,
+                }}
+              >
                 Sign In
               </Link>
-              <Link href="/sign-up" style={{ textDecoration: "none", borderRadius: 10, padding: "8px 12px", fontSize: 13, fontWeight: 700, color: "#fff", background: "linear-gradient(135deg,#c94b2c,#dc143c)" }}>
+              <Link
+                href="/sign-up"
+                style={{
+                  textDecoration: "none",
+                  borderRadius: 10,
+                  padding: "8px 12px",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: "#fff",
+                  background: "linear-gradient(135deg,#c94b2c,#dc143c)",
+                }}
+              >
                 Sign Up
               </Link>
             </>

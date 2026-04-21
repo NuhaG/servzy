@@ -15,7 +15,7 @@ export async function PUT(request, { params }) {
         }
 
         const user = await User.findOne({ clerkId });
-        if (!user || (user.role !== "admin" && user.role !== "provider")) {
+        if (!user || user.role !== "admin") {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
@@ -27,21 +27,13 @@ export async function PUT(request, { params }) {
             return NextResponse.json({ error: "Complaint not found" }, { status: 404 });
         }
 
-        // provider can update only complaints assigned to them
-        if (user.role === "provider") {
-            const provider = await Provider.findOne({ clerkId });
-            if (!provider || complaint.providerId?.toString() !== provider._id.toString()) {
-                return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-            }
-        }
-
         const updates = { status };
         if (internalNotes !== undefined) {
             updates.internalNotes = internalNotes;
         }
 
         let updatedComplaint = await Complaint.findByIdAndUpdate(id, updates, {
-            new: true,
+            returnDocument: 'after',
             runValidators: true,
             context: "query",
         });
@@ -50,20 +42,17 @@ export async function PUT(request, { params }) {
             return NextResponse.json({ error: "Complaint not found" }, { status: 404 });
         }
 
-        if (user.role === "admin") {
-            updatedComplaint = await updatedComplaint
-                .populate("userId", "name email")
-                .populate({
-                    path: "providerId",
-                    select: "businessName userId",
-                    populate: {
-                        path: "userId",
-                        select: "email",
-                    },
-                });
-        } else {
-            updatedComplaint = await updatedComplaint.populate("providerId", "businessName");
-        }
+        await updatedComplaint.populate([
+            { path: "userId", select: "name email" },
+            {
+                path: "providerId",
+                select: "businessName userId",
+                populate: {
+                    path: "userId",
+                    select: "email",
+                },
+            },
+        ]);
 
         return NextResponse.json(updatedComplaint);
     } catch (error) {

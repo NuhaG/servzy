@@ -7,7 +7,6 @@ export default function ProviderComplaintsPage() {
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [updating, setUpdating] = useState(null);
 
   useEffect(() => {
     loadComplaints();
@@ -23,25 +22,6 @@ export default function ProviderComplaintsPage() {
       setError(err.message);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const updateStatus = async (id, status, internalNotes) => {
-    setUpdating(id);
-    try {
-      const response = await fetch(`/api/complaints/${id}/status`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status, internalNotes }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-
-      setComplaints((prev) => prev.map((c) => (c._id === id ? data : c)));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setUpdating(null);
     }
   };
 
@@ -100,50 +80,6 @@ export default function ProviderComplaintsPage() {
                     ))}
                   </div>
                 )}
-
-                <div className="space-y-2">
-                  <div>
-                    <label className="block text-sm font-medium">
-                      Internal Notes
-                    </label>
-                    <textarea
-                      defaultValue={complaint.internalNotes || ""}
-                      onBlur={(e) =>
-                        updateStatus(
-                          complaint._id,
-                          complaint.status,
-                          e.target.value,
-                        )
-                      }
-                      className="mt-1 block w-full border border-gray-300 rounded-md p-2 text-sm"
-                      placeholder="Add internal notes..."
-                    />
-                  </div>
-
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => updateStatus(complaint._id, "open")}
-                      disabled={updating === complaint._id}
-                      className="bg-gray-600 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
-                    >
-                      Mark Open
-                    </button>
-                    <button
-                      onClick={() => updateStatus(complaint._id, "in_review")}
-                      disabled={updating === complaint._id}
-                      className="bg-yellow-600 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
-                    >
-                      In Review
-                    </button>
-                    <button
-                      onClick={() => updateStatus(complaint._id, "resolved")}
-                      disabled={updating === complaint._id}
-                      className="bg-green-600 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
-                    >
-                      Resolve
-                    </button>
-                  </div>
-                </div>
               </div>
             ))}
           </div>

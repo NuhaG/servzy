@@ -5,72 +5,251 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AppNav from "@/components/AppNav";
 
-function IconUser()    { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>; }
-function IconTool()    { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>; }
-function IconPlus()    { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>; }
-function IconCal()     { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>; }
-function IconAlert()   { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>; }
-function IconArrow()   { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>; }
-function IconBuilding(){ return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M3 9h6"/><path d="M3 15h6"/><path d="M15 8h2"/><path d="M15 12h2"/><path d="M15 16h2"/></svg>; }
+function IconUser() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+function IconTool() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+    </svg>
+  );
+}
+function IconPlus() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="16" />
+      <line x1="8" y1="12" x2="16" y2="12" />
+    </svg>
+  );
+}
+function IconCal() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  );
+}
+function IconAlert() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  );
+}
+function IconArrow() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M5 12h14" />
+      <path d="M12 5l7 7-7 7" />
+    </svg>
+  );
+}
+function IconBuilding() {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M9 3v18" />
+      <path d="M3 9h6" />
+      <path d="M3 15h6" />
+      <path d="M15 8h2" />
+      <path d="M15 12h2" />
+      <path d="M15 16h2" />
+    </svg>
+  );
+}
 
 const NAV = [
-  { href:"/provider/profile",      label:"Edit Profile",      desc:"Business info & photo",        Icon:IconUser,  color:"#7c3aed", bg:"#faf5ff" },
-  { href:"/provider/services",     label:"My Services",       desc:"Manage service listings",      Icon:IconTool,  color:"#2563eb", bg:"#eff6ff" },
-  { href:"/provider/services/new", label:"Create Service",    desc:"Add a new listing",            Icon:IconPlus,  color:"#16a34a", bg:"#f0fdf4" },
-  { href:"/provider/bookings",     label:"Booking Requests",  desc:"Review and respond",           Icon:IconCal,   color:"#b91c1c", bg:"#fff1f2" },
-  { href:"/provider/complaints",   label:"Complaints",        desc:"View complaints against you",  Icon:IconAlert, color:"#d97706", bg:"#fffbeb" },
+  {
+    href: "/provider/profile",
+    label: "Edit Profile",
+    desc: "Business info & photo",
+    Icon: IconUser,
+    color: "#7c3aed",
+    bg: "#faf5ff",
+  },
+  {
+    href: "/provider/services",
+    label: "My Services",
+    desc: "Manage service listings",
+    Icon: IconTool,
+    color: "#2563eb",
+    bg: "#eff6ff",
+  },
+  {
+    href: "/provider/services/new",
+    label: "Create Service",
+    desc: "Add a new listing",
+    Icon: IconPlus,
+    color: "#16a34a",
+    bg: "#f0fdf4",
+  },
+  {
+    href: "/provider/bookings",
+    label: "Booking Requests",
+    desc: "Review and respond",
+    Icon: IconCal,
+    color: "#b91c1c",
+    bg: "#fff1f2",
+  },
+  {
+    href: "/provider/complaints",
+    label: "Complaints",
+    desc: "View complaints against you",
+    Icon: IconAlert,
+    color: "#d97706",
+    bg: "#fffbeb",
+  },
 ];
 
 function statusStyle(status) {
-  if (status === "approved" || status === "active") return { bg:"#f0fdf4", color:"#15803d", border:"#bbf7d0" };
-  if (status === "blocked")  return { bg:"#fff1f2", color:"#b91c1c", border:"#fecaca" };
-  if (status === "pending")  return { bg:"#fefce8", color:"#854d0e", border:"#fde68a" };
-  return { bg:"#fafafa", color:"#555", border:"#e5e5e5" };
+  if (status === "approved" || status === "active")
+    return { bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" };
+  if (status === "blocked")
+    return { bg: "#fff1f2", color: "#b91c1c", border: "#fecaca" };
+  if (status === "pending")
+    return { bg: "#fefce8", color: "#854d0e", border: "#fde68a" };
+  return { bg: "#fafafa", color: "#555", border: "#e5e5e5" };
 }
 
 export default function ProviderDashboardPage() {
   const router = useRouter();
   const [provider, setProvider] = useState(null);
-  const [stats,    setStats]    = useState({ services:0, bookings:0, pending:0 });
-  const [error,    setError]    = useState("");
+  const [stats, setStats] = useState({ services: 0, bookings: 0, pending: 0 });
+  const [error, setError] = useState("");
 
   useEffect(() => {
     async function load() {
       try {
-        const meRes  = await fetch("/api/me");
+        const meRes = await fetch("/api/me");
         const meData = await meRes.json();
-	        if (!meRes.ok) throw new Error(meData.error || "Failed to load account");
-	        if (meData.user?.role === "admin") { router.replace("/admin/dashboard"); return; }
-
-	        const hasProviderProfile = Boolean(meData.provider?._id);
-	        if (!hasProviderProfile && meData.user?.role === "user")  { router.replace("/user/dashboard");  return; }
+        if (!meRes.ok)
+          throw new Error(meData.error || "Failed to load account");
+        if (meData.user?.role === "admin") {
+          router.replace("/admin/dashboard");
+          return;
+        }
+        if (meData.user?.role === "user") {
+          router.replace("/user/dashboard");
+          return;
+        }
+        if (meData.user?.role !== "provider") {
+          router.replace("/");
+          return;
+        }
 
         if (!meData.provider?._id) {
-          const cRes = await fetch("/api/providers", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ businessName: meData.user?.name ? `${meData.user.name} Services` : "Provider Services" }) });
+          const cRes = await fetch("/api/providers", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              businessName: meData.user?.name
+                ? `${meData.user.name} Services`
+                : "Provider Services",
+            }),
+          });
           if (!cRes.ok) {
             const cData = await cRes.json().catch(() => ({}));
             const msg = cData.error || "Provider profile not found";
-            if (!String(msg).toLowerCase().includes("already exists")) throw new Error(msg);
+            if (!String(msg).toLowerCase().includes("already exists"))
+              throw new Error(msg);
           }
-          const retryRes  = await fetch("/api/me");
+          const retryRes = await fetch("/api/me");
           const retryData = await retryRes.json();
-          if (!retryRes.ok || !retryData.provider?._id) throw new Error("Provider profile not found for this account");
+          if (!retryRes.ok || !retryData.provider?._id)
+            throw new Error("Provider profile not found for this account");
           meData.provider = retryData.provider;
         }
 
-        const pRes  = await fetch(`/api/providers/${meData.provider._id}`);
+        const pRes = await fetch(`/api/providers/${meData.provider._id}`);
         const pData = await pRes.json();
         if (!pRes.ok) throw new Error(pData.error || "Failed to load provider");
         setProvider(pData);
 
-        const bRes  = await fetch(`/api/bookings?providerId=${encodeURIComponent(meData.provider._id)}`);
+        const bRes = await fetch(
+          `/api/bookings?providerId=${encodeURIComponent(meData.provider._id)}`,
+        );
         const bData = await bRes.json();
         if (!bRes.ok) throw new Error(bData.error || "Failed to load bookings");
 
         setStats({
           services: pData.services?.length || 0,
           bookings: bData.length,
-          pending:  bData.filter((b) => b.status === "pending").length,
+          pending: bData.filter((b) => b.status === "pending").length,
         });
       } catch (err) {
         setError(err.message);
@@ -139,16 +318,26 @@ export default function ProviderDashboardPage() {
       <main className="pd-page">
         <AppNav />
         <div className="pd-shell">
-
           {/* Header */}
           <div className="pd-header">
-            <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div className="pd-role">Provider Dashboard</div>
-              <div className="pd-title">{provider ? provider.businessName : "Dashboard"}</div>
+              <div className="pd-title">
+                {provider ? provider.businessName : "Dashboard"}
+              </div>
               {provider ? (
                 <>
-                  <div className="pd-sub">{provider.location || "Location not set"}</div>
-                  <span className="pd-pill" style={{ background:sc.bg, color:sc.color, borderColor:sc.border }}>
+                  <div className="pd-sub">
+                    {provider.location || "Location not set"}
+                  </div>
+                  <span
+                    className="pd-pill"
+                    style={{
+                      background: sc.bg,
+                      color: sc.color,
+                      borderColor: sc.border,
+                    }}
+                  >
                     {provider.status}
                   </span>
                 </>
@@ -159,9 +348,14 @@ export default function ProviderDashboardPage() {
             </div>
             <div className="pd-avatar">
               {provider?.photo || provider?.avatarUrl ? (
-                <img src={provider.photo || provider.avatarUrl} alt={provider.businessName} />
+                <img
+                  src={provider.photo || provider.avatarUrl}
+                  alt={provider.businessName}
+                />
               ) : (
-                <span style={{ color:"#b91c1c" }}><IconBuilding /></span>
+                <span style={{ color: "#b91c1c" }}>
+                  <IconBuilding />
+                </span>
               )}
             </div>
           </div>
@@ -172,7 +366,10 @@ export default function ProviderDashboardPage() {
               <div className="pd-warn-dot" />
               <div>
                 <div className="pd-warn-title">Account Blocked</div>
-                <div className="pd-warn-msg">Your account has been blocked. You cannot accept new bookings. Please contact support.</div>
+                <div className="pd-warn-msg">
+                  Your account has been blocked. You cannot accept new bookings.
+                  Please contact support.
+                </div>
               </div>
             </div>
           )}
@@ -182,7 +379,10 @@ export default function ProviderDashboardPage() {
               <div>
                 <div className="pd-warn-title">Account Flagged</div>
                 <div className="pd-warn-msg">
-                  Your account has been flagged for review ({provider.flaggedCount} time{provider.flaggedCount > 1 ? "s" : ""}). Ensure your services comply with our policies.
+                  Your account has been flagged for review (
+                  {provider.flaggedCount} time
+                  {provider.flaggedCount > 1 ? "s" : ""}). Ensure your services
+                  comply with our policies.
                 </div>
               </div>
             </div>
@@ -191,9 +391,20 @@ export default function ProviderDashboardPage() {
           {/* Stats */}
           <div className="pd-section">Overview</div>
           <div className="pd-stats">
-            <div className="pd-stat s-t"><div className="pd-stat-n">{stats.services}</div><div className="pd-stat-l">My Services</div></div>
-            <div className="pd-stat s-b"><div className="pd-stat-n">{stats.bookings}</div><div className="pd-stat-l">Total Bookings</div></div>
-            <div className="pd-stat s-p"><div className={`pd-stat-n ${stats.pending > 0 ? "amber" : ""}`}>{stats.pending}</div><div className="pd-stat-l">Pending</div></div>
+            <div className="pd-stat s-t">
+              <div className="pd-stat-n">{stats.services}</div>
+              <div className="pd-stat-l">My Services</div>
+            </div>
+            <div className="pd-stat s-b">
+              <div className="pd-stat-n">{stats.bookings}</div>
+              <div className="pd-stat-l">Total Bookings</div>
+            </div>
+            <div className="pd-stat s-p">
+              <div className={`pd-stat-n ${stats.pending > 0 ? "amber" : ""}`}>
+                {stats.pending}
+              </div>
+              <div className="pd-stat-l">Pending</div>
+            </div>
           </div>
 
           {/* Nav cards */}
@@ -203,17 +414,22 @@ export default function ProviderDashboardPage() {
               <Link key={href} href={href} className="pd-nc">
                 <div className="pd-stripe" />
                 <div className="pd-nc-inner">
-                  <div className="pd-nc-icon" style={{ background:bg }}><span style={{ color }}><Icon /></span></div>
+                  <div className="pd-nc-icon" style={{ background: bg }}>
+                    <span style={{ color }}>
+                      <Icon />
+                    </span>
+                  </div>
                   <div className="pd-nc-text">
                     <span className="pd-nc-label">{label}</span>
                     <span className="pd-nc-desc">{desc}</span>
                   </div>
-                  <span className="pd-arr"><IconArrow /></span>
+                  <span className="pd-arr">
+                    <IconArrow />
+                  </span>
                 </div>
               </Link>
             ))}
           </div>
-
         </div>
       </main>
     </>
